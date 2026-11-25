@@ -1,4 +1,4 @@
-# Ficha técnica · Relleno de huecos climatológicos para SIAMA (borrador)
+# Ficha técnica de Agro SIAMA · Relleno de huecos climatológicos para SIAMA (borrador)
 
 > Las cifras de esta versión provienen del **paquete sintético** de prueba. Se actualizan automáticamente en
 > `salidas/reporte_metricas.md` al ejecutar el pipeline con los datos oficiales.
@@ -8,6 +8,9 @@ Completar las series diarias de **precipitación, Tmax y Tmin** de las estacione
 valor estimado un **intervalo del 90 %** y una **bandera de calidad**, y negarse a rellenar cuando no hay sustento.
 
 ## 2. Método
+0. **Limpieza de formato.** Antes de cualquier cálculo se normalizan fechas, claves y números (coma decimal,
+   códigos -99.9/-999, trazas «Inap» = 0 mm), se combinan filas duplicadas (si se contradicen, el valor queda faltante)
+   y se corrigen coordenadas invertidas o sin signo. Cada corrección queda registrada (`limpieza_reporte.md`).
 1. **Control de calidad previo.** Se retiran (y registran) precipitación < 0 o > 300 mm, temperaturas fuera de
    [-15, 48] °C, Tmax < Tmin, atípicos con |z robusto| > 5 por estación y mes, valores idénticos ≥ 6 días seguidos y
    rachas ≥ 20 días de ceros en jun–sep cuando la mediana regional sí registra lluvia.
@@ -28,8 +31,9 @@ valor estimado un **intervalo del 90 %** y una **bandera de calidad**, y negarse
    valor estimado).
 
 ## 3. Validación
-Huecos artificiales por estación (40 cortos, 15 medios, 4 largos de 31–90 días) sobre datos observados, en lluvias y
-en estiaje. División temporal: entrenamiento ≤ 2021, calibración 2022, prueba 2023–2024.
+Huecos artificiales por estación y por año de registro (4 cortos, 1.5 medios y 0.4 largos de 31–90 días por año)
+sobre datos observados, en lluvias y en estiaje. División temporal automática: los 2 últimos años son prueba y el 10 %
+anterior, calibración (con 2015–2024: entrenamiento ≤ 2021, calibración 2022, prueba 2023–2024).
 
 | Variable | Línea base IDW (MAE / KGE) | Recomendado (MAE / KGE) | Cobertura del intervalo 90 % |
 |---|---|---|---|
@@ -60,7 +64,13 @@ y el sistema la elige automáticamente. El ML debe ganarse su lugar, como lo pid
 - El ensamble ponderado por KGE puede suavizar la precipitación (más días con llovizna, FAR alto). Por eso se elige
   por tipo de hueco y no se aplica a ciegas.
 
-## 7. Integración
+## 7. Uso agrícola (Salamanca)
+Sobre la serie completada se calculan indicadores para productores: lluvia de temporada (jun–oct) contra el promedio,
+inicio de lluvias, racha seca más larga, heladas (Tmin ≤ 0 °C), grados día de desarrollo (base 10 °C, tope 30 °C),
+evapotranspiración de referencia (Hargreaves, FAO-56) y balance lluvia − evapotranspiración. Cada indicador informa
+el % de días medidos para que el productor sepa cuánto se apoya en datos estimados. Vista: `/agro`.
+
+## 8. Integración
 API REST con FastAPI (puede migrarse a Django REST Framework) y documentación OpenAPI en `/docs`. Componente web
 `<siama-huecos>` (Leaflet + Plotly) que se incrusta en Monitor Precipitaciones y Monitor Temperaturas sin rediseñarlos.
 Docker. Los resultados se cargan en PostgreSQL + PostGIS (`python -m siama_gaps postgres`) y la API puede leer de ahí.

@@ -12,13 +12,29 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from . import calidad, config as cfg, diagnostico, homogeneidad, vecinos
+from . import agro, calidad, config as cfg, diagnostico, homogeneidad, limpieza, vecinos
 from .metricas import calcular
 from .relleno import (CLASES, METODOS_BASE, NOMBRE_METODO, Contexto, ModeloVariable, ajustar_conformal,
                       ajustar_seleccion, combinar, intervalos)
-from .utils import a_matrices, cargar_estaciones, cargar_series, climatologia
+from .utils import a_matrices, climatologia
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+
+def division_temporal(fechas):
+    """Años de entrenamiento, calibración y prueba, proporcionales al largo del registro."""
+    a0, a1 = int(fechas.year.min()), int(fechas.year.max())
+    n_anios = a1 - a0 + 1
+    prueba_desde = a1 - cfg.ANIOS_PRUEBA + 1
+    n_cal = max(1, int(round(cfg.FRACCION_CALIBRACION * n_anios)))
+    cal_desde = prueba_desde - n_cal
+    return {"fin_entrenamiento": cal_desde - 1, "calibracion": (cal_desde, prueba_desde - 1), "prueba_desde": prueba_desde}
+
+
+def cantidad_huecos(fechas):
+    anios_registro = len(fechas) / 365.25
+    return {c: (max(1, int(round(tasa * anios_registro))), lo, hi)
+            for c, (tasa, lo, hi) in cfg.HUECOS_ARTIFICIALES_POR_ANIO.items()}
 
 
 def huecos_artificiales(M, fechas, rng):
@@ -28,13 +44,14 @@ def huecos_artificiales(M, fechas, rng):
     mascara = np.zeros((T, S), bool)
     split = np.zeros((T, S), np.int8)
     anios = fechas.year.to_numpy()
+    div = division_temporal(fechas)
     for s in range(S):
-        for _, (n, lo, hi) in cfg.HUECOS_ARTIFICIALES.items():
+        for _, (n, lo, hi) in cantidad_huecos(fechas).items():
             for _ in range(n):
                 L = int(rng.integers(lo, hi + 1))
                 t0 = int(rng.integers(0, T - L))
                 a = anios[t0]
-                k = 1 if a <= cfg.ANIO_FIN_ENTRENAMIENTO else 2 if a == cfg.ANIO_CALIBRACION else 3
+                k = 1 if a <= div["fin_entrenamiento"] else 2 if a < div["prueba_desde"] else 3
                 mascara[t0:t0 + L, s] = True
                 split[t0:t0 + L, s] = k
     return mascara, split
@@ -64,32 +81,34 @@ def ejecutar(datos="datos", salida="salidas", semilla=0):
     inicio = time.time()
     datos, salida = Path(datos), Path(salida)
     salida.mkdir(parents=True, exist_ok=True)
-    est = cargar_estaciones(datos / "estaciones.csv")
-    ruta_series = datos / "series_diarias.parquet"
-    df = cargar_series(ruta_series if ruta_series.exists() else datos / "series_diarias.csv")
+    print("[0/7] Limpieza de datos...")
+    est, df, reg_limpieza, conteo_limpieza = limpieza.limpiar(datos)
+    res_limpieza = limpieza.guardar(reg_limpieza, conteo_limpieza, salida)
+    print(f"      {conteo_limpieza['filas_leidas']:,} filas leídas -> {conteo_limpieza['filas_finales']:,} limpias; "
+          f"{len(res_limpieza)} tipos de corrección (ver limpieza_reporte.md)")
     fechas = pd.date_range(df["fecha"].min(), df["fecha"].max(), freq="D")
     claves = est["clave"].tolist()
     Mraw = a_matrices(df, fechas, claves)
 
-    print("[1/6] Control de calidad...")
+    print("[1/7] Control de calidad...")
     M, banderas_qc = calidad.aplicar(Mraw, fechas, claves)
     banderas_qc.to_csv(salida / "qc_banderas.csv", index=False)
     print(f"      {len(banderas_qc)} valores marcados y retirados: "
           f"{banderas_qc['regla'].value_counts().to_dict()}")
 
-    print("[2/6] Diagnóstico de vacíos...")
+    print("[2/7] Diagnóstico de vacíos...")
     resumen, huecos, anual = diagnostico.calcular(M, fechas, claves)
     resumen.to_csv(salida / "diagnostico_estaciones.csv", index=False)
     huecos.to_csv(salida / "huecos.csv", index=False)
     anual.to_csv(salida / "diagnostico_anual.csv", index=False)
 
-    print("[3/6] Selección de vecinos y homogeneidad...")
+    print("[3/7] Selección de vecinos y homogeneidad...")
     tabla_vec = vecinos.seleccionar(M, fechas, est)
     tabla_vec.to_csv(salida / "vecinos.csv", index=False)
     homog = homogeneidad.evaluar(M, fechas, claves, tabla_vec)
     homog.to_csv(salida / "homogeneidad.csv", index=False)
 
-    print("[4/6] Validación con huecos artificiales (entrenar / calibrar / probar)...")
+    print("[4/7] Validación con huecos artificiales (entrenar / calibrar / probar)...")
     rng = np.random.default_rng(semilla)
     mascara, split = huecos_artificiales(M, fechas, rng)
     Mm = {v: np.where(mascara, np.nan, M[v]) for v in cfg.VARIABLES}
@@ -128,7 +147,7 @@ def ejecutar(datos="datos", salida="salidas", semilla=0):
         rec = {c: conf["ranking"][c][0] for c in CLASES}
         print(f"      {var}: método recomendado por tipo de hueco -> {rec}")
 
-    print("[5/6] Relleno de los huecos reales...")
+    print("[5/7] Relleno de los huecos reales...")
     ctx = Contexto(fechas, est, M, tabla_vec)
     T, S = M["tmax"].shape
     ultimo_obs = np.array([np.max(np.nonzero(~np.isnan(M["tmax"][:, j]) | ~np.isnan(M["precipitacion"][:, j]))[0],
@@ -176,7 +195,7 @@ def ejecutar(datos="datos", salida="salidas", semilla=0):
     assert not ((serie["origen"] == "observado") & (serie["metodo"] != "")).any()
     assert (serie.loc[serie.variable == "precipitacion", "valor"].dropna() >= 0).all()
 
-    print("[6/6] Predicciones sobre test_publico.csv y métricas...")
+    print("[6/7] Predicciones sobre test_publico.csv y métricas...")
     test_local = None
     ruta_test = datos / "test_publico.csv"
     if ruta_test.exists():
@@ -196,9 +215,10 @@ def ejecutar(datos="datos", salida="salidas", semilla=0):
         "nivel_intervalo": cfg.NIVEL_INTERVALO,
         "configuracion": {
             "radio_max_km": cfg.RADIO_MAX_KM, "correlacion_minima": cfg.CORR_MIN, "k_vecinos": cfg.K_VECINOS,
-            "min_traslape_dias": cfg.MIN_TRASLAPE_DIAS, "huecos_artificiales_por_estacion": cfg.HUECOS_ARTIFICIALES,
-            "division": {"entrenamiento": f"<= {cfg.ANIO_FIN_ENTRENAMIENTO}", "calibracion": cfg.ANIO_CALIBRACION,
-                         "prueba": f">= {cfg.ANIO_CALIBRACION + 1}"},
+            "min_traslape_dias": cfg.MIN_TRASLAPE_DIAS, "huecos_artificiales_por_estacion": cantidad_huecos(fechas),
+            "division": {"entrenamiento": f"<= {division_temporal(fechas)['fin_entrenamiento']}",
+                         "calibracion": "–".join(map(str, sorted(set(division_temporal(fechas)["calibracion"])))),
+                         "prueba": f">= {division_temporal(fechas)['prueba_desde']}"},
         },
         "nombres_metodo": NOMBRE_METODO,
         "puntos_validacion": n_puntos,
@@ -210,6 +230,8 @@ def ejecutar(datos="datos", salida="salidas", semilla=0):
         "cuantil_conformal": {v: configs[v]["q"] for v in cfg.VARIABLES},
         "umbral_ocurrencia_lluvia": modelos["precipitacion"].umbral,
         "correcciones_tmax_tmin": n_corr,
+        "fuente": _fuente(datos),
+        "limpieza": {**conteo_limpieza, "correcciones": res_limpieza.groupby("regla")["filas"].sum().to_dict()},
         "valores_qc_retirados": banderas_qc["regla"].value_counts().to_dict(),
         "test_publico_local": test_local,
         "resumen_relleno": serie.groupby(["variable", "bandera"]).size().unstack(fill_value=0).to_dict("index"),
@@ -218,8 +240,23 @@ def ejecutar(datos="datos", salida="salidas", semilla=0):
                                           encoding="utf-8")
     est.to_csv(salida / "estaciones.csv", index=False)
     _reporte_md(metricas, salida / "reporte_metricas.md")
+
+    print("[7/7] Indicadores agroclimáticos...")
+    ind = agro.indicadores_todas(serie, est)
+    ind.to_csv(salida / "agro_indicadores.csv", index=False)
+    print(f"      {len(ind)} estación-temporada calculadas (ver agro_indicadores.csv)")
     print(f"Listo en {time.time() - inicio:.0f} s -> {salida}/")
     return metricas
+
+
+def _fuente(datos):
+    """Origen de los datos: fuente.json del paquete; si no existe, se infiere."""
+    ruta = Path(datos) / "fuente.json"
+    if ruta.exists():
+        return json.loads(ruta.read_text(encoding="utf-8"))
+    if (Path(datos) / "_verdad_test_publico.csv").exists():
+        return {"tipo": "sintetico", "origen": "Paquete sintético de prueba"}
+    return {"tipo": "desconocido", "origen": str(datos)}
 
 
 def _reporte_md(m, ruta):

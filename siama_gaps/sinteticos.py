@@ -158,6 +158,8 @@ def generar(destino="datos", n_estaciones=28, semilla=42):
         destino / "test_publico.csv", index=False)
     test.to_csv(destino / "_verdad_test_publico.csv", index=False)  # solo existe porque los datos son sintéticos
     (destino / "diccionario_datos.md").write_text(DICCIONARIO, encoding="utf-8")
+    (destino / "fuente.json").write_text('{"tipo": "sintetico", "origen": "Paquete sintético de prueba"}\n',
+                                         encoding="utf-8")
     print(f"Datos sintéticos: {S} estaciones, {T} días, {len(test)} valores en test_publico -> {destino}/")
 
 

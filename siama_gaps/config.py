@@ -22,11 +22,13 @@ NIVEL_INTERVALO = 0.90
 # Umbral de día con lluvia (mm) para POD/FAR y para el clasificador de ocurrencia
 UMBRAL_LLUVIA = 0.1
 
-# Huecos artificiales para validar (por estación): cortos, medios, largos
-HUECOS_ARTIFICIALES = {"corto": (40, 1, 3), "medio": (15, 4, 30), "largo": (4, 31, 90)}
-# División temporal de los huecos artificiales: entrenamiento / calibración / prueba
-ANIO_FIN_ENTRENAMIENTO = 2021
-ANIO_CALIBRACION = 2022
+# Huecos artificiales para validar, POR ESTACIÓN Y POR AÑO de registro: (cantidad, días mín., días máx.)
+# Con 10 años equivale a 40 cortos, 15 medios y 4 largos por estación.
+HUECOS_ARTIFICIALES_POR_ANIO = {"corto": (4.0, 1, 3), "medio": (1.5, 4, 30), "largo": (0.4, 31, 90)}
+# División temporal automática: los últimos años son prueba y una fracción anterior es calibración.
+# Con 2015-2024: entrenamiento <= 2021, calibración 2022, prueba 2023-2024.
+ANIOS_PRUEBA = 2
+FRACCION_CALIBRACION = 0.10
 
 # Control de calidad
 RANGO_TEMP = (-15.0, 48.0)

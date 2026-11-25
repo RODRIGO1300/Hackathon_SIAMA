@@ -239,7 +239,7 @@ siama-huecos[tema=carbon] .shg-error{color:#da1e28}`;
         trazas = [
           { type: "bar", x, y: obs, name: "Medido", marker: { color: cObs }, text: texto, hoverinfo: "text+x", textposition: "none" },
           { type: "bar", x, y: datos.map((d, i) => esEst[i] ? d.valor : null), name: "Estimado",
-            marker: { color: cEst, pattern: { shape: "/", fgcolor: "#fff", size: 5 } },
+            marker: { color: cEst, pattern: { shape: "/", fgcolor: "#fff", size: 5, fillmode: "overlay" } },
             error_y: { type: "data", symmetric: false, color: cEst, thickness: 1, width: 2,
               array: datos.map((d, i) => esEst[i] ? d.ls - d.valor : null),
               arrayminus: datos.map((d, i) => esEst[i] ? d.valor - d.li : null) },

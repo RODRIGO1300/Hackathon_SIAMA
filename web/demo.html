@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Demo de integración · Datos sin huecos</title>
+<title>Agro SIAMA · Demo de integración</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
@@ -28,6 +28,8 @@
     display:flex; align-items:center; border-bottom:1px solid var(--cds-shell-border); }
   .cds-header__name { padding:0 16px; font-size:14px; white-space:nowrap; }
   .cds-header__name b { font-weight:600; }
+  .cds-header__link { margin-left:auto; padding:0 16px; color:var(--cds-shell-text); font-size:14px; text-decoration:none; white-space:nowrap; }
+  .cds-header__link:hover { text-decoration:underline; }
   .cds-header__desc { color:var(--cds-shell-text-secondary); font-size:12px; padding:0 16px; border-left:1px solid var(--cds-shell-border);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
@@ -80,15 +82,16 @@
 </head>
 <body>
 <header class="cds-header">
-  <div class="cds-header__name">SIAMA <b>Datos sin huecos</b></div>
+  <div class="cds-header__name">Agro SIAMA <b>Monitor de estaciones</b></div>
   <div class="cds-header__desc">Tablero de ejemplo que incrusta el componente &lt;siama-huecos&gt; · IBM Carbon Design System</div>
+  <a class="cds-header__link" href="agro.html">Clima para el campo →</a>
 </header>
 <nav class="cds-tabs" role="tablist" aria-label="Tablero">
   <button role="tab" aria-selected="true" data-var="precipitacion">Monitor Precipitaciones</button>
   <button role="tab" aria-selected="false" data-var="tmax">Monitor Temperaturas</button>
 </nav>
 <main>
-  <div class="cds-notification">Datos <b>sintéticos</b> de prueba. El bloque con mapa y gráfica es el componente incrustado con una sola
+  <div class="cds-notification"><span id="fuente-datos">Datos <b>sintéticos</b> de prueba.</span> El bloque con mapa y gráfica es el componente incrustado con una sola
     etiqueta HTML; el resto de la página representa al tablero anfitrión, que no se modifica.</div>
 
   <siama-huecos id="comp" variable="precipitacion" vista="completo" tema="carbon"></siama-huecos>
@@ -142,6 +145,8 @@
   // --- Asistente de IA (watsonx.ai / IBM Granite cuando está configurado) ---
   let iaActiva = false, ultima = null;
   fetch("/api/v1/salud").then((r) => r.json()).then((s) => {
+    const f = s.origen_datos || {};
+    if (f.tipo === "oficial") $("fuente-datos").textContent = `Datos oficiales: ${f.origen}${f.emision ? `, emisión ${f.emision}` : ""}.`;
     iaActiva = !!(s.watsonx && s.watsonx.configurado);
     if (!iaActiva) {
       $("pregunta").disabled = true; document.querySelector(".cds-btn").disabled = true;

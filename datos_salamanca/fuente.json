@@ -1,0 +1,19 @@
+{
+  "tipo": "oficial",
+  "origen": "SMN · Base de Datos Climatológica Nacional (CLICOM)",
+  "emision": "20/11/2026",
+  "archivos": [
+    "dia11096.txt",
+    "dia11136.txt"
+  ],
+  "claves": [
+    "11096",
+    "11136"
+  ],
+  "estado_smn": "gto",
+  "desde": 1981,
+  "hasta": null,
+  "periodo": "1981–2025",
+  "datos_hasta": "2025-12-31",
+  "revisado": "2026-11-25T11:53:27"
+}

@@ -13,7 +13,6 @@ import io
 import json
 import os
 from datetime import date
-from functools import lru_cache
 from pathlib import Path
 from typing import Literal, Optional
 
@@ -36,7 +35,7 @@ UNIDADES = {"precipitacion": "mm", "tmax": "°C", "tmin": "°C"}
 NOMBRES = {"precipitacion": "Precipitación diaria", "tmax": "Temperatura máxima", "tmin": "Temperatura mínima"}
 
 app = FastAPI(
-    title="SIAMA · Datos climatológicos sin huecos",
+    title="Agro SIAMA · API de datos agroclimáticos",
     version="0.1.0",
     description=(
         "Diagnóstico de vacíos, series completadas con incertidumbre y métricas del modelo. "
@@ -63,8 +62,26 @@ def _abridor():
     return abrir
 
 
-@lru_cache
+_cache_datos = {"marca": None, "valor": None}
+
+
+def _marca_salidas():
+    """Cambia cuando el pipeline vuelve a escribir resultados (p. ej. tras `python -m siama_gaps actualizar`)."""
+    if FUENTE == "postgresql":
+        return "postgresql"
+    ruta = SALIDAS / "metricas.json"
+    return ruta.stat().st_mtime_ns if ruta.exists() else None
+
+
 def datos():
+    """Resultados en memoria; se recargan solos si el pipeline generó resultados nuevos."""
+    marca = _marca_salidas()
+    if _cache_datos["valor"] is None or marca != _cache_datos["marca"]:
+        _cache_datos["valor"], _cache_datos["marca"] = _cargar_datos(), marca
+    return _cache_datos["valor"]
+
+
+def _cargar_datos():
     abrir = _abridor()
     serie = pd.read_csv(abrir("series_completadas.csv"), dtype={"clave": str},
                         keep_default_na=False, na_values=[""], low_memory=False)
@@ -99,6 +116,11 @@ def _estacion(clave):
 @app.get("/", include_in_schema=False)
 def inicio():
     return RedirectResponse("/web/demo.html")
+
+
+@app.get("/agro", include_in_schema=False)
+def inicio_agro():
+    return RedirectResponse("/web/agro.html")
 
 
 @app.get("/api/v1/estaciones", tags=["Estaciones"],
@@ -257,11 +279,48 @@ def preguntar(clave: str, q: str = Query(..., min_length=3, max_length=300, desc
     return {"estacion": info, "pregunta": q, "respuesta": texto, "fuente": f"watsonx.ai · {w.modelo}"}
 
 
+# --- Vista agrícola ---------------------------------------------------------------------------------------
+_cache_agro = {}
+
+
+@app.get("/api/v1/agro/estaciones", tags=["Agro"],
+         summary="Estaciones disponibles para la vista agrícola (filtro opcional por municipio)")
+def agro_estaciones(municipio: Optional[str] = Query(None, description="Ej. Salamanca")):
+    d = datos()
+    est = d["est"]
+    if municipio:
+        est = est[est["municipio"].str.casefold() == municipio.strip().casefold()]
+        if est.empty:
+            raise HTTPException(404, f"No hay estaciones en el municipio {municipio}")
+    return {"municipio": municipio, "estaciones": [_estacion(c) for c in est.index]}
+
+
+@app.get("/api/v1/agro/{clave}", tags=["Agro"],
+         summary="Indicadores agroclimáticos de una estación para una temporada",
+         description="Lluvia de temporada vs. promedio, inicio de lluvias, racha seca, heladas, grados día del "
+                     "cultivo, evapotranspiración y balance de agua. Cada bloque informa el % de días medidos.")
+def agro_panel(clave: str, anio: Optional[int] = Query(None, description="Temporada; por defecto la más reciente"),
+               siembra: Optional[date] = Query(None, description="Fecha de siembra; por defecto el inicio de lluvias"),
+               hasta: Optional[date] = Query(None, description="Fecha de corte; por defecto el último dato")):
+    from siama_gaps import agro
+    d = datos()
+    info = _estacion(clave)
+    llave = (clave, anio, siembra, hasta, d["metricas"]["generado"])
+    if llave not in _cache_agro:
+        serie = d["serie"].loc[clave].reset_index()
+        try:
+            _cache_agro[llave] = agro.panel(serie, info["latitud"], anio, siembra, hasta)
+        except ValueError as e:
+            raise HTTPException(404, str(e))
+    return {"estacion": info, **_cache_agro[llave]}
+
+
 @app.get("/api/v1/salud", tags=["Operación"])
 def salud():
     d = datos()
     return {"ok": True, "estaciones": len(d["est"]), "generado": d["metricas"]["generado"],
-            "fuente_datos": FUENTE, "watsonx": watsonx.cliente().estado()}
+            "fuente_datos": FUENTE, "origen_datos": d["metricas"].get("fuente", {"tipo": "desconocido"}),
+            "watsonx": watsonx.cliente().estado()}
 
 
 app.mount("/web", StaticFiles(directory=RAIZ / "web", html=True), name="web")

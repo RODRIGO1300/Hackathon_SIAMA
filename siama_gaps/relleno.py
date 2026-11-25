@@ -304,12 +304,25 @@ def ajustar_conformal(var, df, y):
         n = len(score)
         nivel = min(1.0, np.ceil((n + 1) * cfg.NIVEL_INTERVALO) / n)
         q[c] = float(np.quantile(score, nivel))
+    if "todas" not in q and ok.sum() >= 10:
+        # Pocos puntos de calibración: un solo cuantil con todos, más conservador que el nivel nominal
+        score = (np.abs(df["valor"].to_numpy()[ok] - y[ok]) if var in cfg.TEMPERATURAS else
+                 np.maximum(df["q_lo"].to_numpy()[ok] - y[ok], y[ok] - df["q_hi"].to_numpy()[ok]))
+        q["todas"] = float(np.max(score))
     return q
 
 
 def intervalos(var, df, q):
+    """Intervalo conformal por punto. Sin calibración posible, el dato no se publica (regla: todo estimado
+    lleva su incertidumbre)."""
     clase = df["clase"].to_numpy()
-    qq = np.array([q.get(c, q["todas"]) for c in clase])
+    qq = np.array([q.get(c, q.get("todas", np.nan)) for c in clase], dtype=float)
+    sin_q = np.isnan(qq) & ~np.isnan(df["valor"].to_numpy())
+    if sin_q.any():
+        df.loc[sin_q, "valor"] = np.nan
+        df.loc[sin_q, "metodo"] = ""
+        df.loc[sin_q, "bandera"] = "no_estimable"
+        df.loc[sin_q, "motivo_no_estimable"] = "sin_incertidumbre_calibrada"
     v = df["valor"].to_numpy()
     if var in cfg.TEMPERATURAS:
         li, ls = v - qq, v + qq
