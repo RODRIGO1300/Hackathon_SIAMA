@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo de integración · Datos sin huecos</title>
+<style>
+  :root { --fondo:#f4f6f9; --tarjeta:#fff; --texto:#1d2733; --suave:#5b6776; --borde:#d9dee5; --acento:#0b5d8c; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--fondo); color:var(--texto); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { background:#0b3d5c; color:#fff; padding:14px 20px; display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:17px; margin:0; font-weight:600; }
+  header small { opacity:.8; }
+  nav { display:flex; gap:4px; }
+  nav button { font:inherit; font-size:14px; padding:7px 12px; border:0; border-radius:6px; background:transparent; color:#cfe3f1; cursor:pointer; }
+  nav button[aria-selected=true] { background:#fff; color:#0b3d5c; font-weight:600; }
+  main { max-width:1280px; margin:0 auto; padding:18px 16px 40px; display:grid; gap:16px; }
+  .tarjeta { background:var(--tarjeta); border:1px solid var(--borde); border-radius:10px; padding:14px 16px; }
+  .tarjeta h2 { font-size:15px; margin:0 0 8px; }
+  .aviso { font-size:13px; color:var(--suave); }
+  .fila { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+  @media (max-width:860px){ .fila { grid-template-columns:1fr; } }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { text-align:right; padding:5px 8px; border-bottom:1px solid var(--borde); font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align:left; }
+  tr.rec td { font-weight:600; background:#fff5ec; }
+  pre { background:#0f1720; color:#d6e2ee; padding:12px; border-radius:8px; overflow:auto; font-size:12.5px; }
+  a { color:var(--acento); }
+  #resumen { font-size:14px; line-height:1.5; }
+</style>
+</head>
+<body>
+<header>
+  <div><h1>Tablero de ejemplo</h1><small>Simulación de un tablero existente que incrusta el componente &lt;siama-huecos&gt;</small></div>
+  <nav role="tablist">
+    <button role="tab" aria-selected="true" data-var="precipitacion">Monitor Precipitaciones</button>
+    <button role="tab" aria-selected="false" data-var="tmax">Monitor Temperaturas</button>
+  </nav>
+</header>
+<main>
+  <p class="aviso">Datos <b>sintéticos</b> de prueba. Todo lo que está debajo de esta línea es el componente incrustado con una sola etiqueta HTML;
+    el resto de la página representa al tablero anfitrión, que no se modifica.</p>
+
+  <siama-huecos id="comp" variable="precipitacion" vista="completo"></siama-huecos>
+
+  <div class="fila">
+    <section class="tarjeta">
+      <h2>¿Qué tan completa está esta estación? <span class="aviso">(endpoint para el asistente de IA)</span></h2>
+      <div id="resumen" class="aviso">Elige una estación en el mapa.</div>
+    </section>
+    <section class="tarjeta">
+      <h2>¿El modelo le gana a la línea base? <span class="aviso">(prueba con huecos artificiales)</span></h2>
+      <div id="metricas" class="aviso">Cargando…</div>
+    </section>
+  </div>
+
+  <section class="tarjeta">
+    <h2>Cómo incrustarlo en Monitor Precipitaciones / Monitor Temperaturas</h2>
+    <pre>&lt;script src="https://SERVIDOR/web/siama-huecos.js"&gt;&lt;/script&gt;
+&lt;siama-huecos api="https://SERVIDOR" variable="precipitacion" vista="completo"&gt;&lt;/siama-huecos&gt;
+
+&lt;!-- Solo la gráfica, controlada por los filtros del tablero: --&gt;
+&lt;siama-huecos api="https://SERVIDOR" vista="serie" selector="no" estacion="11003" variable="tmax"&gt;&lt;/siama-huecos&gt;</pre>
+    <p class="aviso">API documentada (OpenAPI): <a href="/docs" target="_blank">/docs</a> ·
+      Endpoints: <code>/api/v1/estaciones/{clave}/diagnostico</code>, <code>/api/v1/estaciones/{clave}/serie</code>, <code>/api/v1/metricas</code></p>
+  </section>
+</main>
+<script src="siama-huecos.js"></script>
+<script>
+  const comp = document.getElementById("comp");
+  document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll("nav button").forEach((x) => x.setAttribute("aria-selected", x === b));
+    comp.setAttribute("variable", b.dataset.var);
+    metricas(b.dataset.var);
+  }));
+  async function resumen(clave) {
+    const r = await (await fetch(`/api/v1/estaciones/${clave}/resumen`)).json();
+    document.getElementById("resumen").textContent = r.texto;
+  }
+  comp.addEventListener("siama-estacion", (e) => resumen(e.detail.clave));
+  new MutationObserver(() => resumen(comp.getAttribute("estacion"))).observe(comp, { attributeFilter: ["estacion"] });
+  const NOM = { interp_lineal: "Interpolación lineal", idw: "IDW (línea base)", normal: "Razón / diferencia normal",
+    ml: "Machine learning", ensamble: "Ensamble", recomendado: "Recomendado (selección por tipo de hueco)" };
+  async function metricas(v) {
+    const m = await (await fetch(`/api/v1/metricas?variable=${v}&clase=todas`)).json();
+    const u = v === "precipitacion" ? "mm" : "°C";
+    const filas = m.resultados.map((r) => `<tr class="${r.metodo === "recomendado" ? "rec" : ""}"><td>${NOM[r.metodo] || r.metodo}</td>
+      <td>${r.mae?.toFixed(2)}</td><td>${r.rmse?.toFixed(2)}</td><td>${r.kge?.toFixed(3)}</td>
+      <td>${r.cobertura != null ? (100 * r.cobertura).toFixed(1) + "%" : "—"}</td></tr>`).join("");
+    document.getElementById("metricas").innerHTML = `<table><thead><tr><th>Método</th><th>MAE (${u})</th><th>RMSE</th><th>KGE</th><th>Cobertura 90%</th></tr></thead>
+      <tbody>${filas}</tbody></table>`;
+  }
+  metricas("precipitacion");
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+clave,nombre,municipio,latitud,longitud,altitud,estado_operativo
+11001,León (11001),León,21.377,-101.6183,1748.0,operando
+11002,Irapuato (11002),Irapuato,20.8241,-100.4814,1699.0,operando
+11003,Celaya (11003),Celaya,21.5167,-100.3488,2177.0,operando
+11004,Salamanca (11004),Salamanca,21.2507,-99.8699,2184.0,operando
+11005,Guanajuato (11005),Guanajuato,20.2554,-101.2495,1668.0,operando
+11006,Dolores Hidalgo (11006),Dolores Hidalgo,21.7098,-101.1535,1779.0,operando
+11007,San Miguel de Allende (11007),San Miguel de Allende,21.3559,-100.9405,1717.0,operando
+11008,Silao (11008),Silao,21.397,-101.5426,1769.0,operando
+11009,Pénjamo (11009),Pénjamo,20.3114,-101.6707,1730.0,operando
+11010,Acámbaro (11010),Acámbaro,20.8431,-100.9272,1960.0,operando
+11011,San Luis de la Paz (11011),San Luis de la Paz,20.7118,-101.4621,1868.0,operando
+11012,Valle de Santiago (11012),Valle de Santiago,21.6292,-100.5099,1867.0,operando
+11013,Salvatierra (11013),Salvatierra,21.1624,-101.0101,2185.0,operando
+11014,Yuriria (11014),Yuriria,21.4576,-100.1597,2571.0,operando
+11015,Cortazar (11015),Cortazar,20.8316,-100.4444,1793.0,operando
+11016,San Felipe (11016),San Felipe,20.4749,-101.2784,1713.0,operando
+11017,Ocampo (11017),Ocampo,21.0151,-100.1606,1931.0,operando
+11018,Victoria (11018),Victoria,20.2053,-100.2198,1652.0,operando
+11019,Xichú (11019),Xichú,21.4656,-101.1169,1717.0,operando
+11020,Apaseo el Grande (11020),Apaseo el Grande,21.1422,-101.3301,2537.0,operando
+11021,Abasolo (11021),Abasolo,21.3508,-100.4826,2023.0,operando
+11022,Moroleón (11022),Moroleón,20.685,-101.6495,1792.0,operando
+11023,Tarimoro (11023),Tarimoro,21.7017,-101.5202,1695.0,operando
+11024,Comonfort (11024),Comonfort,21.5736,-101.9342,1730.0,operando
+11025,Romita (11025),Romita,21.3843,-100.2581,2624.0,operando
+11026,Jerécuaro (11026),Jerécuaro,20.4212,-100.5206,1701.0,operando
+11027,Doctor Mora (11027),Doctor Mora,20.8701,-100.4339,1781.0,operando
+11028,Santa Catarina (11028),Santa Catarina,20.1723,-100.2714,1680.0,suspendida
