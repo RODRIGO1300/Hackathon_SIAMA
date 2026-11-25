@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agro SIAMA · Pitch de cinco minutos</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:      #ffffff;
+    --surface: #f7f8fa;
+    --border:  #e5e7eb;
+    --text:    #1f2328;
+    --muted:   #57606a;
+    --blue:    #3b82d4;
+    --purple:  #7c5cd8;
+  }
+
+  html, body {
+    height: 100%;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 15px;
+    color: var(--text);
+    background: #111;
+    overflow: hidden;
+  }
+
+  .deck { width: 100%; height: 100%; position: relative; }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    display: none;
+    flex-direction: column;
+    padding: 56px 72px 44px;
+  }
+  .slide.active { display: flex; }
+
+  .nav {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 100;
+  }
+  .nav button {
+    background: #222;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+  }
+  .nav button:hover { opacity: 1; }
+
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: var(--blue);
+    transition: width .3s ease;
+    z-index: 200;
+  }
+
+  .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 10px;
+  }
+  h1 { font-size: 42px; font-weight: 800; line-height: 1.15; }
+  h2 { font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 12px; }
+  .sub { font-size: 18px; color: var(--muted); line-height: 1.5; margin-top: 14px; max-width: 640px; }
+  .sub-sm { font-size: 15px; color: var(--muted); line-height: 1.6; margin-top: 8px; }
+
+  .cards { display: grid; gap: 16px; margin-top: 24px; }
+  .cards-2 { grid-template-columns: 1fr 1fr; }
+  .cards-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px 22px;
+  }
+  .card .card-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .card .card-title { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+  .card p { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+  .card-blue   { border-left: 4px solid var(--blue); }
+  .card-purple { border-left: 4px solid var(--purple); }
+  .card-green  { border-left: 4px solid #22c55e; }
+  .card-red    { border-left: 4px solid #ef4444; }
+  .card-yellow { border-left: 4px solid #f59e0b; }
+
+  #s1 { background: #0f1724; color: #fff; }
+  #s1 .label { color: #6ea6ff; }
+  #s1 .sub { color: #9ba8b9; }
+  #s1 .tagline { margin-top: 32px; padding-top: 24px; border-top: 1px solid #2a3a52; font-size: 14px; color: #6ea6ff; letter-spacing: .05em; }
+
+  #s9 { background: #0f1724; color: #fff; justify-content: center; align-items: center; text-align: center; }
+  #s9 .sub { color: #9ba8b9; margin: 16px auto 0; }
+
+
+  .slide { justify-content: center; overflow-y: auto; padding: clamp(20px, 6vw, 72px); padding-bottom: 86px; }
+  .slide > * { flex-shrink: 0; }
+  h1 { font-size: clamp(32px, 5.5vw, 76px); }
+  h2 { font-size: clamp(28px, 4vw, 58px); }
+  .sub { font-size: clamp(16px, 2vw, 23px); }
+  .card p { font-size: 16px; }
+  .card .metric { font-size: clamp(30px, 5vw, 55px); font-weight: 800; color: var(--text); }
+  .demo-link { align-self: flex-start; margin-top: 20px; color: #175397; font-weight: 700; }
+  .source { margin-top: 12px; color: var(--muted); font-size: 13px; }
+  #s1 .tagline { color: #a9ccff; }
+  @media (max-width: 650px) {
+    .slide, #s9 { justify-content: flex-start; }
+    .cards { grid-template-columns: 1fr; gap: 8px; margin-top: 16px; }
+    .card { padding: 12px 16px; }
+    .nav { bottom: 12px; }
+  }
+  @media (max-height: 540px) {
+    .slide, #s9 { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+
+<main class="deck" aria-label="Presentación de Agro SIAMA">
+  <section class="slide active" id="s1" aria-labelledby="titulo">
+    <p class="label">Agro SIAMA · Salamanca, Guanajuato</p>
+    <h1 id="titulo">¿Cuántos días seguidos<br>pasaron sin lluvia?</h1>
+    <p class="sub">Su cultivo rindió menos de lo esperado. Antes de planear la siguiente temporada, quiere revisar el historial de lluvia de su estación.</p>
+    <p class="tagline">¿El día quedó en blanco porque estuvo seco o porque faltó la medición?</p>
+  </section>
+
+  <section class="slide" aria-labelledby="integracion">
+    <h2 id="integracion">Un módulo que se suma a SIAMA</h2>
+    <p class="sub">SIAMA sigue siendo el punto de consulta. El prototipo revisa los registros diarios de lluvia y de temperatura máxima y mínima, y ayuda a interpretar sus vacíos.</p>
+    <div class="cards cards-3">
+      <div class="card card-blue"><h3 class="card-title">Detectamos huecos</h3><p>Identificamos días sin un registro utilizable.</p></div>
+      <div class="card card-purple"><h3 class="card-title">Estimamos con evidencia</h3><p>Consultamos el historial y estaciones cercanas con un comportamiento similar.</p></div>
+      <div class="card card-green"><h3 class="card-title">Mostramos la calidad</h3><p>Indicamos qué se midió, qué se estimó y qué sigue sin poder estimarse. Cada estimación incluye su intervalo de incertidumbre.</p></div>
+    </div>
+  </section>
+
+  <section class="slide" aria-labelledby="campo">
+    <h2 id="campo">¿Qué puede consultar Don Miguel?</h2>
+    <div class="cards cards-2">
+      <div class="card card-blue"><h3 class="card-title">Lluvia de temporada</h3><p>Compararla con el promedio histórico de la estación.</p></div>
+      <div class="card card-purple"><h3 class="card-title">Racha seca más larga</h3><p>Revisar cuánto duró el periodo seco más largo de la temporada.</p></div>
+      <div class="card card-green"><h3 class="card-title">Heladas y balance de agua</h3><p>Consultar antecedentes para conversar con personal técnico sobre siembra y riego de apoyo.</p></div>
+      <div class="card card-yellow"><h3 class="card-title">Porcentaje de días medidos</h3><p>Ver cuántos días del indicador cuentan con mediciones de la estación.</p></div>
+    </div>
+    <a class="demo-link" href="http://localhost:8000/agro" target="_blank" rel="noopener">Abrir Clima para el campo ↗</a>
+  </section>
+
+  <section class="slide" aria-labelledby="prueba">
+    <h2 id="prueba">Qué probamos en Salamanca</h2>
+    <p class="sub">Ocultamos mediciones históricas de las estaciones Salamanca y La Joyita y comparamos las estimaciones de lluvia con lo que se había medido.</p>
+    <div class="cards cards-2">
+      <div class="card card-blue"><p class="metric">1,5 mm</p><p>Error absoluto medio en los días de prueba que se pudieron estimar.</p></div>
+      <div class="card card-purple"><p class="metric">≈ 25 %</p><p>De los días de prueba de lluvia quedaron como no estimables.</p></div>
+    </div>
+    <a class="demo-link" href="http://localhost:8000/web/demo.html" target="_blank" rel="noopener">Abrir el monitor del prototipo ↗</a>
+    <p class="source">Registros de CLICOM (Servicio Meteorológico Nacional). Prueba con huecos artificiales en dos estaciones.</p>
+  </section>
+
+  <section class="slide" id="s9" aria-labelledby="piloto">
+    <h2 id="piloto">Hagamos un piloto en Salamanca</h2>
+    <p class="sub">Con el equipo de SIAMA, productores y personal técnico agrícola, proponemos probar el módulo en los monitores de SIAMA y revisar si los indicadores responden a preguntas del campo.</p>
+    <p class="sub">Al consultar el historial, Don Miguel podrá preguntar qué registró la estación, qué se pudo estimar y dónde sigue faltando información.</p>
+  </section>
+</main>
+
+<div class="nav">
+  <button type="button" id="prev" aria-label="Diapositiva anterior">&#8592;</button>
+  <button type="button" id="next" aria-label="Diapositiva siguiente">&#8594;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total  = slides.length;
+  let cur = 0;
+
+  function goTo(n) {
+    slides[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(total - 1, n));
+    slides[cur].classList.add('active');
+    document.getElementById('progress').style.width = ((cur + 1) / total * 100) + '%';
+  }
+
+  document.getElementById('next').addEventListener('click', () => goTo(cur + 1));
+  document.getElementById('prev').addEventListener('click', () => goTo(cur - 1));
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || (e.key === ' ' && e.target === document.body)) goTo(cur + 1);
+    if (e.key === 'ArrowLeft') goTo(cur - 1);
+  });
+
+  goTo(0);
+</script>
+
+</body>
+</html>
