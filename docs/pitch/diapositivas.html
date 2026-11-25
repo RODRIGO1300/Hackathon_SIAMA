@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pitch SIAMA · Datos sin huecos</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --tinta: #0E2233;
+  --papel: #F5F7F6;
+  --papel2: #E4ECF0;
+  --azul: #0F62FE;
+  --naranja: #B84C00;
+  --gris: #7D8790;
+  --suave: #4A5866;
+  --linea: #C9D3DA;
+  --sobre-oscuro: #B9C9D6;
+  --azul-claro: #78A9FF;
+  --naranja-claro: #FF9B57;
+}
+
+body { font-family: 'IBM Plex Sans', Arial, sans-serif; color: var(--tinta); }
+
+section { padding: 128px; background: var(--papel); color: var(--tinta); display: flex; flex-direction: column; box-sizing: border-box; }
+section.alt { background: var(--papel2); }
+section.oscuro { background: var(--tinta); color: var(--papel); }
+section.acento { background: var(--azul); color: var(--papel); justify-content: center; }
+section.con-pie { padding: 128px 128px 160px; }
+
+.ceja { font-size: 24px; font-weight: 600; letter-spacing: 3px; color: var(--azul); margin: 0 0 24px; }
+.oscuro .ceja { color: var(--azul-claro); }
+.acento .ceja { color: #D0E2FF; }
+
+h1 { font-size: 120px; font-weight: 700; line-height: 1.05; letter-spacing: -2px; margin: 0; }
+h2 { font-size: 72px; font-weight: 700; line-height: 1.1; letter-spacing: -1px; margin: 0 0 56px; max-width: 1560px; }
+h3 { font-size: 44px; font-weight: 600; line-height: 1.15; margin: 0; }
+
+.texto { font-size: 32px; line-height: 1.4; color: var(--suave); margin: 0; }
+.oscuro .texto { color: var(--sobre-oscuro); }
+.acento .texto { color: #E5EEFF; }
+.nota { font-size: 24px; line-height: 1.4; color: var(--suave); margin: 0; }
+.pie { position: absolute; left: 128px; bottom: 64px; width: 1664px; font-size: 24px; color: var(--suave); margin: 0; }
+.oscuro .pie { color: var(--sobre-oscuro); }
+
+.naranja { color: var(--naranja); }
+.oscuro .naranja { color: var(--naranja-claro); }
+.azul { color: var(--azul); }
+
+/* Llegada escalonada */
+.entra { animation: subir 600ms ease-out both; animation-delay: calc(var(--i, 0) * 120ms); }
+@keyframes subir { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Portada */
+.portada-cuerpo { display: flex; flex-direction: column; justify-content: center; flex: 1; gap: 48px; }
+.portada-cuerpo .texto { max-width: 1240px; }
+
+/* Tira de días */
+.dias { display: flex; gap: 16px; margin: 0 0 20px; }
+.dia { width: 96px; height: 96px; background: var(--azul); border-radius: 8px; box-sizing: border-box; }
+.dia.hueco { background: transparent; border: 4px dashed var(--gris); }
+
+/* Tarjetas */
+.fila { display: flex; gap: 32px; }
+.tarjeta { flex: 1; background: #FBFCFC; border: 2px solid var(--linea); border-radius: 16px; padding: 40px; display: flex; flex-direction: column; gap: 16px; }
+.alt .tarjeta { background: var(--papel); }
+.tarjeta .icono { width: 56px; height: 56px; color: var(--azul); }
+.tarjeta .texto { font-size: 28px; }
+.flecha { width: 64px; height: 32px; background: var(--gris); align-self: center; flex: none; }
+
+/* Número grande */
+.cifra { font-size: 120px; font-weight: 700; line-height: 1; letter-spacing: -2px; margin: 0; color: var(--azul); }
+.cifra.naranja { color: var(--naranja); }
+.cifra.tinta { color: var(--tinta); }
+.dato-grande { display: flex; align-items: center; gap: 48px; margin-top: 64px; padding-top: 48px; border-top: 2px solid var(--linea); }
+
+/* Idea */
+.idea-frase { font-size: 88px; font-weight: 700; line-height: 1.1; letter-spacing: -1px; margin: 0 0 48px; max-width: 1600px; }
+
+/* Vista */
+.vista { display: flex; gap: 56px; align-items: center; flex: 1; }
+.captura { width: 1040px; height: 342px; object-fit: contain; background: #FFFFFF; border: 2px solid var(--linea); border-radius: 12px; }
+.leyenda { display: flex; flex-direction: column; gap: 40px; flex: 1; }
+.leyenda-item { display: flex; gap: 24px; align-items: flex-start; }
+.muestra { width: 40px; height: 40px; border-radius: 8px; flex: none; margin-top: 4px; }
+.muestra.medido { background: var(--azul); }
+.muestra.estimado { background: var(--naranja); }
+.muestra.sin { background: transparent; border: 4px dashed var(--gris); box-sizing: border-box; }
+.leyenda-item .texto { font-size: 28px; }
+
+/* Pasos */
+.paso-num { width: 80px; height: 80px; border-radius: 40px; background: var(--azul); color: var(--papel); font-size: 44px; font-weight: 700; line-height: 80px; text-align: center; margin: 0; }
+
+/* Resultados */
+.resultado { flex: 1; display: flex; flex-direction: column; gap: 16px; }
+.resultado .texto { font-size: 28px; }
+.resultado .etiqueta { font-size: 32px; font-weight: 600; line-height: 1.3; margin: 0; color: var(--tinta); }
+
+.barras { display: flex; flex-direction: column; gap: 20px; margin-top: 64px; padding-top: 40px; border-top: 2px solid var(--linea); }
+.barra-fila { display: flex; align-items: center; gap: 24px; }
+.barra-nombre { width: 320px; font-size: 28px; margin: 0; color: var(--tinta); }
+.barra { height: 48px; background: var(--azul); border-radius: 0 8px 8px 0; }
+.barra.gris { background: var(--gris); }
+.barra-valor { font-size: 28px; margin: 0; color: var(--tinta); }
+
+/* Integración */
+.dos-col { display: flex; gap: 64px; flex: 1; }
+.col { flex: 1; display: flex; flex-direction: column; gap: 24px; }
+.codigo { font-family: 'IBM Plex Mono', 'Courier New', monospace; font-size: 30px; line-height: 1.4; background: var(--tinta); color: #E4ECF0; padding: 32px 40px; border-radius: 12px; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 16px; }
+.chip { font-size: 24px; font-weight: 600; padding: 10px 24px; border-radius: 32px; background: var(--papel); border: 2px solid var(--linea); margin: 0; }
+.burbuja { font-size: 28px; line-height: 1.4; padding: 28px 36px; border-radius: 24px; margin: 0; }
+.burbuja.pregunta { background: var(--azul); color: var(--papel); align-self: flex-end; max-width: 640px; }
+.burbuja.respuesta { background: var(--papel); border: 2px solid var(--linea); color: var(--tinta); max-width: 720px; }
+.firma { font-size: 24px; font-weight: 600; color: #6929C4; margin: 0; }
+
+/* Cierre */
+.cierre-cuerpo { display: flex; flex-direction: column; justify-content: center; flex: 1; gap: 40px; }
+.demo { font-size: 44px; font-weight: 600; color: var(--naranja-claro); margin: 24px 0 0; }
+
+/* --- Visor autónomo --- */
+html, body { margin:0; height:100%; background:#0b1620; overflow:hidden; }
+#escenario { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; }
+#lienzo { width:1920px; height:1080px; position:relative; transform-origin:center center; flex:none; }
+#lienzo > section { position:absolute; inset:0; width:1920px; height:1080px; display:none; overflow:hidden; }
+#lienzo > section.activa { display:flex; }
+x-icon { display:block; }
+x-icon svg { width:100%; height:100%; fill:currentColor; display:block; }
+x-shape[kind="arrow-right"] { display:block; clip-path:polygon(0 30%, 60% 30%, 60% 0, 100% 50%, 60% 100%, 60% 70%, 0 70%); }
+aside.notas { display:none; }
+body.con-notas aside.notas { display:block; position:absolute; left:0; right:0; bottom:0; padding:24px 128px; background:rgba(11,22,32,.94);
+  color:#e4ecf0; font-size:28px; line-height:1.4; z-index:5; }
+#barra { position:fixed; left:50%; bottom:14px; transform:translateX(-50%); display:flex; gap:10px; align-items:center; z-index:10;
+  font:14px 'IBM Plex Sans', sans-serif; color:#c6c6c6; background:rgba(0,0,0,.45); padding:6px 12px; border-radius:20px; }
+#barra button { background:none; border:0; color:#fff; font-size:20px; cursor:pointer; padding:0 6px; }
+@media print { #barra { display:none; } }
+</style>
+</head>
+<body>
+<div id="escenario"><div id="lienzo">
+<section id="portada" class="oscuro con-pie" data-transition="fade">
+<p class="ceja entra" style="--i:0">RETO HACKATÓN SIAMA · GUANAJUATO</p>
+<div class="portada-cuerpo">
+<h1 class="entra" style="--i:1">Datos del clima sin huecos.<br><span class="naranja">Y sin engaños.</span></h1>
+<p class="texto entra" style="--i:2">Completamos los días que las estaciones no registraron y decimos siempre qué dato fue medido y cuál es estimado.</p>
+</div>
+<p class="pie">[Nombre del equipo] · [Integrantes]</p>
+<aside class="notas">Buenos días. Venimos a proponer algo sencillo: que los datos del clima de Guanajuato no tengan huecos, y que nadie confunda un dato calculado con uno medido. En cinco minutos les contamos el problema, la idea y se la mostramos funcionando.</aside>
+</section>
+<section id="problema">
+<p class="ceja">EL PROBLEMA</p>
+<h2>Las estaciones del clima a veces se quedan en silencio</h2>
+<div class="dias entra" style="--i:0">
+<div class="dia"></div><div class="dia"></div><div class="dia"></div><div class="dia hueco"></div><div class="dia hueco"></div><div class="dia"></div><div class="dia"></div><div class="dia"></div><div class="dia"></div><div class="dia hueco"></div><div class="dia hueco"></div><div class="dia hueco"></div><div class="dia"></div><div class="dia"></div>
+</div>
+<p class="nota" style="margin-bottom:64px">Cada cuadro es un día. Los vacíos son días sin dato de lluvia o temperatura.</p>
+<div class="fila">
+<div class="tarjeta entra" style="--i:1"><x-icon name="Wrench" class="icono"></x-icon><h3>Equipo descompuesto</h3></div>
+<div class="tarjeta entra" style="--i:2"><x-icon name="Warning" class="icono"></x-icon><h3>Estación suspendida</h3></div>
+<div class="tarjeta entra" style="--i:3"><x-icon name="Book" class="icono"></x-icon><h3>Registro incompleto</h3></div>
+</div>
+<p class="texto" style="margin-top:48px">Hoy esos huecos se rellenan <b>a mano, caso por caso</b>.</p>
+<aside class="notas">Las estaciones climatológicas de Guanajuato miden cada día la lluvia y la temperatura. Pero a veces no registran nada: se descompone el equipo, la estación se suspende o el registro queda incompleto. Así quedan huecos en la historia del clima, y hoy se rellenan a mano, uno por uno.</aside>
+</section>
+<section id="impacto" class="alt">
+<p class="ceja">POR QUÉ IMPORTA</p>
+<h2>Un hueco pequeño termina en una mala decisión sobre el agua</h2>
+<div class="fila">
+<div class="tarjeta entra" style="--i:0"><x-icon name="Cloud" class="icono"></x-icon><h3>Faltan días de lluvia</h3></div>
+<x-shape kind="arrow-right" class="flecha entra" style="--i:1"></x-shape>
+<div class="tarjeta entra" style="--i:2"><x-icon name="Chart" class="icono"></x-icon><h3>Promedios y sequías mal calculados</h3></div>
+<x-shape kind="arrow-right" class="flecha entra" style="--i:3"></x-shape>
+<div class="tarjeta entra" style="--i:4"><x-icon name="Users" class="icono"></x-icon><h3>Decisiones sobre el agua con datos sesgados</h3></div>
+</div>
+<div class="dato-grande entra" style="--i:5">
+<p class="cifra">+5,000</p>
+<p class="texto">consultas al mes en SIAMA de ciudadanía, investigadores y autoridades.<br>Un dato estimado que parece medido <b>rompe su confianza</b>.</p>
+</div>
+<aside class="notas">Esto no es solo un problema técnico. Si faltan días de lluvia, los promedios y los índices de sequía salen mal, y con ellos los balances de agua que usan las autoridades. Además, SIAMA recibe más de cinco mil consultas al mes. Si alguien toma un dato calculado creyendo que es medido, se pierde la confianza en la información del agua.</aside>
+</section>
+<section id="idea" class="acento" data-transition="fade">
+<p class="ceja">NUESTRA IDEA</p>
+<p class="idea-frase entra" style="--i:0">Llenar cada hueco con lo que midieron las estaciones vecinas, y marcarlo como estimado.</p>
+<p class="texto entra" style="font-size:44px; --i:2">Ningún dato estimado se presenta como medido. Nunca.</p>
+<aside class="notas">Nuestra idea es simple. Cuando a una estación le falta un día, miramos a sus vecinas: las que están cerca y se comportan parecido. Con eso calculamos el dato que falta. Y lo más importante: cada dato calculado queda marcado como estimado, con su margen de error. Nunca se hace pasar por medido.</aside>
+</section>
+<section id="vista">
+<p class="ceja">ASÍ LO VE LA GENTE</p>
+<h2>Medido, estimado o sin dato: se distingue a simple vista</h2>
+<div class="vista">
+<img class="captura entra" style="--i:0" src="grafica-temperatura.png" alt="Gráfica de temperatura máxima en León: línea azul de datos medidos, tramo punteado naranja de datos estimados con una franja que marca su rango probable">
+<div class="leyenda">
+<div class="leyenda-item entra" style="--i:1"><div class="muestra medido"></div><div><h3>Medido</h3><p class="texto">Lo registró la estación.</p></div></div>
+<div class="leyenda-item entra" style="--i:2"><div class="muestra estimado"></div><div><h3 class="naranja">Estimado</h3><p class="texto">Lo calculamos y damos su rango: «entre 18 y 22 °C».</p></div></div>
+<div class="leyenda-item entra" style="--i:3"><div class="muestra sin"></div><div><h3>Sin estimar</h3><p class="texto">Si no hay información confiable, no lo inventamos.</p></div></div>
+</div>
+</div>
+<aside class="notas">Así se ve. La línea azul es lo que midió la estación. El tramo naranja punteado es lo que calculamos, y la franja sombreada es el rango donde, con 90 % de probabilidad, está el valor real. Y cuando no hay información suficiente, dejamos el hueco y lo decimos: preferimos no dar un dato a dar uno inventado.</aside>
+</section>
+<section id="pasos" class="alt">
+<p class="ceja">CÓMO FUNCIONA</p>
+<h2>Tres pasos, automáticos, con un solo comando</h2>
+<div class="fila">
+<div class="tarjeta entra" style="--i:0"><p class="paso-num">1</p><h3>Revisa</h3><p class="texto">Encuentra los días sin dato y retira los valores imposibles, como lluvia negativa.</p></div>
+<div class="tarjeta entra" style="--i:1"><p class="paso-num">2</p><h3>Rellena</h3><p class="texto">Usa las estaciones vecinas que se parecen y elige solo el mejor método para cada hueco.</p></div>
+<div class="tarjeta entra" style="--i:2"><p class="paso-num">3</p><h3>Muestra</h3><p class="texto">Mapa y gráfica dentro de Monitor Precipitaciones y Monitor Temperaturas.</p></div>
+</div>
+<div class="dato-grande entra" style="--i:3">
+<div class="muestra sin" style="width:72px; height:72px"></div>
+<p class="texto">Si un hueco no se puede llenar con confianza, el sistema <b>lo dice y lo deja vacío</b>.</p>
+</div>
+<aside class="notas">Funciona en tres pasos, todos automáticos. Primero revisa: encuentra los huecos y quita valores imposibles. Después rellena: busca las estaciones vecinas que se comportan parecido y elige, para cada tipo de hueco, el método que mejor funcionó. Y al final lo muestra en los tableros que SIAMA ya tiene. Todo corre con un solo comando.</aside>
+</section>
+<section id="resultados" class="con-pie">
+<p class="ceja">¿FUNCIONA?</p>
+<h2>Lo probamos: borramos datos reales y los volvimos a calcular</h2>
+<div class="fila">
+<div class="resultado entra" style="--i:0"><p class="cifra">0.96 °C</p><p class="etiqueta">de error promedio en temperatura máxima</p></div>
+<div class="resultado entra" style="--i:1"><p class="cifra naranja">9 de 10</p><p class="etiqueta">valores reales cayeron dentro del rango que anunciamos</p></div>
+<div class="resultado entra" style="--i:2"><p class="cifra tinta">0</p><p class="etiqueta">datos estimados presentados como medidos</p></div>
+</div>
+<div class="barras entra" style="--i:3">
+<p class="nota"><b>Error promedio en temperatura máxima</b> (menos es mejor)</p>
+<div class="barra-fila"><p class="barra-nombre">Método simple</p><div class="barra gris" style="width:1000px"></div><p class="barra-valor">1.47 °C</p></div>
+<div class="barra-fila"><p class="barra-nombre"><b>Nuestra propuesta</b></p><div class="barra" style="width:653px"></div><p class="barra-valor"><b>0.96 °C</b></p></div>
+</div>
+<p class="pie">Prueba con datos sintéticos que tienen el mismo formato que el paquete oficial. Con los datos reales, las cifras se recalculan solas.</p>
+<aside class="notas">¿Funciona? Lo probamos como lo hará el jurado: borramos datos que sí conocíamos y le pedimos al sistema que los adivinara. En temperatura máxima se equivoca en promedio menos de un grado, contra casi un grado y medio del método simple. Y cuando decimos “el valor real está en este rango”, acertamos 9 de cada 10 veces. Aclaro: por ahora son datos de prueba con el formato oficial; con los datos reales el reporte se regenera solo.</aside>
+</section>
+<section id="integracion" class="alt">
+<p class="ceja">LISTO PARA SIAMA</p>
+<h2>Se conecta a SIAMA sin rediseñar nada</h2>
+<div class="dos-col">
+<div class="col entra" style="--i:0">
+<h3>Una etiqueta y el tablero ya lo muestra</h3>
+<p class="codigo">&lt;siama-huecos variable="tmax"&gt;<br>&lt;/siama-huecos&gt;</p>
+<p class="texto">Funciona dentro de Monitor Precipitaciones y Monitor Temperaturas tal como están hoy.</p>
+<div class="chips"><p class="chip">API documentada</p><p class="chip">Docker</p><p class="chip">PostgreSQL + PostGIS</p></div>
+</div>
+<div class="col entra" style="--i:1">
+<h3>Y responde como asistente de IA</h3>
+<p class="burbuja pregunta">¿Qué tan completa está la estación León?</p>
+<p class="burbuja respuesta">El 88 % de los días de lluvia fueron medidos. Los 440 días restantes se estimaron con confianza alta.</p>
+<p class="firma">Redactado por IBM Granite en watsonx.ai</p>
+</div>
+</div>
+<div class="chips entra" style="--i:2; margin-top:40px; align-items:center"><p class="nota" style="margin-right:8px"><b>Con tecnología IBM:</b></p><p class="chip">watsonx.ai</p><p class="chip">Code Engine</p><p class="chip">Databases for PostgreSQL</p><p class="chip">Carbon Design System</p></div>
+<aside class="notas">Lo diseñamos para que SIAMA lo adopte sin rehacer nada. Con una sola etiqueta, los tableros que ya existen muestran el mapa y la gráfica. Tiene API documentada, contenedor Docker y se guarda en PostgreSQL con PostGIS, el mismo stack de SIAMA. Además, el asistente de IA puede responder preguntas como “¿qué tan completa está la estación León?”, con IBM Granite en watsonx.ai y usando solo nuestros datos. Lo desplegamos en IBM Cloud Code Engine y la interfaz usa Carbon.</aside>
+</section>
+<section id="cierre" class="oscuro con-pie">
+<p class="ceja">EN RESUMEN</p>
+<div class="cierre-cuerpo">
+<h1 class="entra" style="--i:0">Series completas,<br>confiables y <span class="naranja">honestas</span>.</h1>
+<p class="texto entra" style="--i:1; max-width:1300px">La base que necesita el futuro módulo de inteligencia artificial de SIAMA.</p>
+<p class="demo entra" style="--i:3">Ahora, véanlo funcionando →</p>
+</div>
+<p class="pie">[Nombre del equipo] · Gracias</p>
+<aside class="notas">En resumen: datos del clima completos, confiables y honestos. Y no es un ejercicio aislado: SIAMA planea modelos de inteligencia artificial para calidad y disponibilidad del agua, y esos modelos necesitan exactamente esto, series completas con su incertidumbre declarada. Ahora les mostramos la demo en vivo.</aside>
+</section>
+</div></div>
+<div id="barra"><button id="ant" aria-label="Anterior">‹</button><span id="contador"></span><button id="sig" aria-label="Siguiente">›</button>
+  <span>· N: notas</span></div>
+<script>
+const ICONOS = {"Wrench": "M27.7 7.5l-4.2 4.2-3.2-3.2 4.2-4.2A7 7 0 0 0 15.8 13L4 24.8 7.2 28 19 16.2a7 7 0 0 0 8.7-8.7z", "Warning": "M16 3 2 28h28L16 3zm-1 9h2v8h-2zm1 13a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z", "Book": "M6 4h17a3 3 0 0 1 3 3v21H9a3 3 0 0 1-3-3V4zm2 2v19a1 1 0 0 0 1 1h15V7a1 1 0 0 0-1-1zm3 4h10v2H11zm0 5h10v2H11z", "Cloud": "M24 26H9a7 7 0 0 1-1.2-13.9A9 9 0 0 1 25.4 14 6 6 0 0 1 24 26z", "Chart": "M4 28V4h2v22h22v2zm6-6V14h4v8zm7 0V8h4v14zm7 0v-6h4v6z", "Users": "M12 15a6 6 0 1 1 0-12 6 6 0 0 1 0 12zm-10 13v-3a7 7 0 0 1 7-7h6a7 7 0 0 1 7 7v3zm20-13a5 5 0 0 0 0-10v2a3 3 0 0 1 0 6zm8 13h-2v-3a5 5 0 0 0-3-4.6l.8-1.8A7 7 0 0 1 30 25z"};
+document.querySelectorAll("x-icon").forEach((e) => {
+  const p = ICONOS[e.getAttribute("name")];
+  if (p) e.innerHTML = `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="${p}"/></svg>`;
+});
+const lienzo = document.getElementById("lienzo");
+const diapos = [...lienzo.querySelectorAll(":scope > section")];
+let i = Math.max(0, Math.min(diapos.length - 1, (parseInt(location.hash.slice(1)) || 1) - 1));
+function escalar() {
+  const k = Math.min(innerWidth / 1920, innerHeight / 1080);
+  lienzo.style.transform = `scale(${k})`;
+}
+function mostrar(n) {
+  i = Math.max(0, Math.min(diapos.length - 1, n));
+  diapos.forEach((s, k) => {
+    s.classList.toggle("activa", k === i);
+    if (k === i) s.querySelectorAll(".entra").forEach((e) => { e.style.animation = "none"; e.offsetHeight; e.style.animation = ""; });
+  });
+  document.getElementById("contador").textContent = `${i + 1} / ${diapos.length}`;
+  history.replaceState(null, "", `#${i + 1}`);
+}
+addEventListener("resize", escalar);
+addEventListener("keydown", (e) => {
+  if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) mostrar(i + 1);
+  else if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) mostrar(i - 1);
+  else if (e.key === "Home") mostrar(0);
+  else if (e.key === "End") mostrar(diapos.length - 1);
+  else if (e.key.toLowerCase() === "n") document.body.classList.toggle("con-notas");
+});
+document.getElementById("escenario").addEventListener("click", (e) => mostrar(e.clientX > innerWidth / 3 ? i + 1 : i - 1));
+document.getElementById("ant").onclick = () => mostrar(i - 1);
+document.getElementById("sig").onclick = () => mostrar(i + 1);
+escalar(); mostrar(i);
+</script>
+</body>
+</html>
