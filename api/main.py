@@ -9,6 +9,7 @@ Integraciones opcionales con IBM (ver ibm/README.md):
 Sin esas variables, la API funciona igual leyendo los archivos de salidas/.
 """
 import gzip
+import threading
 import io
 import json
 import os
@@ -295,21 +296,66 @@ def agro_estaciones(municipio: Optional[str] = Query(None, description="Ej. Sala
     return {"municipio": municipio, "estaciones": [_estacion(c) for c in est.index]}
 
 
+_cache_mapa = {}
+_candado_mapa = threading.Lock()
+
+
+@app.on_event("startup")
+def _preparar_mapa():
+    import threading
+
+    def trabajo():
+        try:
+            agro_mapa(None, None, None)
+        except Exception:  # el mapa se calculará en la primera consulta
+            pass
+    threading.Thread(target=trabajo, daemon=True).start()
+
+
+@app.get("/api/v1/agro/mapa", tags=["Agro"],
+         summary="Mapa del estado: lluvia, calor, heladas y agua para el cultivo de una temporada (o un mes)",
+         description="Valores por estación y una cuadrícula estimada entre estaciones (distancia inversa). "
+                     "No se pinta a más de 25 km de una estación.")
+def agro_mapa(ciclo: Optional[Literal["primavera_verano", "otono_invierno"]] = Query(None),
+              inicio: Optional[int] = Query(None, description="Año en que empieza la temporada"),
+              mes: Optional[int] = Query(None, ge=1, le=12, description="Mes dentro de la temporada")):
+    from siama_gaps import mapa
+    d = datos()
+    gen = d["metricas"]["generado"]
+    # Una sola preparación a la vez: si ya se está calculando (p. ej. al arrancar), esta consulta espera
+    with _candado_mapa:
+        if _cache_mapa.get("generado") != gen or "tablas" not in _cache_mapa:
+            tablas = mapa.tablas_mensuales(d["serie"], d["est"].reset_index())
+            _cache_mapa.clear()
+            _cache_mapa.update(generado=gen, tablas=tablas)
+        tablas = _cache_mapa["tablas"]
+    llave = (ciclo, inicio, mes)
+    if llave not in _cache_mapa:
+        try:
+            _cache_mapa[llave] = mapa.mapa(tablas, d["est"].reset_index(), ciclo, inicio, mes)
+        except ValueError as e:
+            raise HTTPException(404, str(e))
+    return _cache_mapa[llave]
+
+
 @app.get("/api/v1/agro/{clave}", tags=["Agro"],
          summary="Indicadores agroclimáticos de una estación para una temporada",
          description="Lluvia de temporada vs. promedio, inicio de lluvias, racha seca, heladas, grados día del "
                      "cultivo, evapotranspiración y balance de agua. Cada bloque informa el % de días medidos.")
 def agro_panel(clave: str, anio: Optional[int] = Query(None, description="Temporada; por defecto la más reciente"),
                siembra: Optional[date] = Query(None, description="Fecha de siembra; por defecto el inicio de lluvias"),
-               hasta: Optional[date] = Query(None, description="Fecha de corte; por defecto el último dato")):
+               hasta: Optional[date] = Query(None, description="Fecha de corte; por defecto el último dato"),
+               ciclo: Optional[Literal["primavera_verano", "otono_invierno"]] = Query(
+                   None, description="Temporada agrícola; por defecto la más reciente"),
+               inicio: Optional[int] = Query(None, description="Año en que empieza la temporada (p. ej. 2024)")):
     from siama_gaps import agro
     d = datos()
     info = _estacion(clave)
-    llave = (clave, anio, siembra, hasta, d["metricas"]["generado"])
+    llave = (clave, anio, siembra, hasta, ciclo, inicio, d["metricas"]["generado"])
     if llave not in _cache_agro:
         serie = d["serie"].loc[clave].reset_index()
         try:
-            _cache_agro[llave] = agro.panel(serie, info["latitud"], anio, siembra, hasta)
+            _cache_agro[llave] = agro.panel(serie, info["latitud"], anio, siembra, hasta, ciclo, inicio)
         except ValueError as e:
             raise HTTPException(404, str(e))
     return {"estacion": info, **_cache_agro[llave]}

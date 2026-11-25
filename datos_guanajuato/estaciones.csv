@@ -1,0 +1,146 @@
+clave,nombre,municipio,latitud,longitud,altitud,estado_operativo
+11001,Abasolo (11001),Abasolo,20.44666667,-101.5363889,1761,operando
+11002,Acambaro (11002),Acámbaro,20.0325,-100.7122222,1860,operando
+11003,Agua Tibia (11003),Pénjamo,20.51027778,-101.6294444,1720,operando
+11004,Aldama (11004),Irapuato,20.81694444,-101.3188889,1800,operando
+11005,Apaseo (11005),Apaseo el Grande,20.54444444,-100.6855556,1773,operando
+11006,Apaseo el Alto (11006),Apaseo el Alto,20.455,-100.6208333,1875,operando
+11007,Calderones (11007),Guanajuato,20.99166667,-101.2272222,2357,operando
+11008,Cañada de Gonzalez (11008),Dolores Hidalgo Cuna de la Independencia Nacional,21.16472222,-101.1191667,2125,suspendida
+11009,Celaya (smn) (11009),Celaya,20.53638889,-100.8166667,1761,operando
+11010,Cerano (11010),Yuriria,20.10111111,-101.3958333,1909,operando
+11011,Cinco Señores (11011),San Miguel de Allende,20.95777778,-100.8933333,2062,operando
+11012,Coroneo (11012),Coroneo,20.19833333,-100.3633333,2271,operando
+11013,Cortazar (11013),Cortazar,20.48777778,-100.9627778,1730,operando
+11014,Cueramaro (11014),Cuerámaro,20.62555556,-101.6758333,1732,operando
+11015,Charcas (11015),Doctor Mora,21.13916667,-100.3305556,2114,operando
+11016,Dolores Hidalgo (dge) (11016),Dolores Hidalgo Cuna de la Independencia Nacional,21.16666667,-100.9333333,1987,suspendida
+11017,Dolores Hidalgo (smn) (11017),Dolores Hidalgo Cuna de la Independencia Nacional,21.15222222,-100.9513889,1937,suspendida
+11019,El Huizache (11019),Cortazar,20.42027778,-100.9594444,1812,suspendida
+11020,El Palote (11020),León,21.17277778,-101.6963889,1837,operando
+11021,El Sabino (11021),Salvatierra,20.28138889,-101.0063889,1730,operando
+11022,El Terrero (11022),Apaseo el Alto,20.36972222,-100.5547222,2099,operando
+11023,Guanajal (11023),San Francisco del Rincón,21.02527778,-101.8366667,1767,suspendida
+11024,Guanajuato (obs) (11024),Guanajuato,21.01472222,-101.2661111,1999.4,operando
+11025,Hacienda de Arriba (11025),León,21.23111111,-101.7052778,1920,operando
+11026,Hacienda San Juan (11026),San Diego de la Unión,21.46861111,-100.9213889,2120,suspendida
+11028,Irapuato (11028),Irapuato,20.66833333,-101.3372222,1729,operando
+11029,Jalpa (11029),Purísima del Rincón,20.87888889,-101.9866667,1753,suspendida
+11030,Jaral de Berrios (11030),San Felipe,21.695,-101.0244444,1859,suspendida
+11031,Jerecuaro (11031),Jerécuaro,20.14305556,-100.5188889,1787,operando
+11032,Santa Cruz Juventino Rosas (dge) (11032),Santa Cruz de Juventino Rosas,20.64972222,-101,1761,suspendida
+11033,La Begoña (11033),San Miguel de Allende,20.84833333,-100.8258333,1850,operando
+11034,La Golondrina (11034),Pénjamo,20.43833333,-101.7422222,1849,operando
+11035,La Sandia (11035),León,20.92055556,-101.6975,1771,operando
+11036,Las Adjuntas (11036),Manuel Doblado,20.67527778,-101.8441667,1727,operando
+11037,Las Mesas (11037),Abasolo,20.43083333,-101.4980556,1878,suspendida
+11038,Mogotes (11038),Valle de Santiago,20.42,-101.285,1731,operando
+11040,Los Castillos (11040),León,21.19527778,-101.6675,1865,operando
+11041,Los Razos (11041),Salamanca,20.67583333,-101.1488889,1768,operando
+11042,Los Rodriguez (11042),San Miguel de Allende,21.04083333,-100.6405556,2009,operando
+11043,Lourdes (11043),San Luis de la Paz,21.29,-100.7019444,1995,suspendida
+11044,Mandujano (11044),Santa Cruz de Juventino Rosas,20.74027778,-101.0494444,2059,operando
+11045,Media Luna (11045),León,21.2325,-101.6391667,2221,operando
+11047,Moroleon (11047),Moroleón,20.12555556,-101.1913889,1812,operando
+11048,Neutla (11048),Comonfort,20.70777778,-100.8355556,1933,suspendida
+11049,Nuevo Valle Moreno (11049),León,21.21111111,-101.4258333,2247,operando
+11050,Ocampo (11050),Ocampo,21.65,-101.4797222,2253,operando
+11051,Peñuelitas (11051),Dolores Hidalgo Cuna de la Independencia Nacional,21.10777778,-100.8780556,1906,operando
+11052,Pericos (11052),Salamanca,20.52222222,-101.1183333,1719,operando
+11053,Pozos (11053),San Luis de la Paz,21.22,-100.4961111,2206,suspendida
+11054,Pueblo Nuevo (11054),Pueblo Nuevo,20.5275,-101.3713889,1715,suspendida
+11055,Purisima de Bustos (11055),Purísima del Rincón,21.07861111,-101.8711111,1794,suspendida
+11056,Planta Ramos Millan (11056),Cortazar,20.51166667,-100.9513889,1735,operando
+11058,Romita (11058),Romita,20.87,-101.5147222,1755,suspendida
+11059,La Magdalena (11059),Valle de Santiago,20.30861111,-101.1727778,1830,operando
+11060,Salvatierra (11060),Salvatierra,20.21444444,-100.8858333,1753,operando
+11061,San Antonio (11061),Dolores Hidalgo Cuna de la Independencia Nacional,21.16,-100.9247222,1920,suspendida
+11062,San Antonio de los Martinez (11062),San Luis de la Paz,21.62861111,-100.4305556,1742,suspendida
+11063,San Cristobal (11063),Dolores Hidalgo Cuna de la Independencia Nacional,21.15583333,-100.9177778,1929,operando
+11064,San Diego de la Union (11064),San Diego de la Unión,21.46555556,-100.8719444,2070,suspendida
+11065,San Felipe (dge) (11065),San Felipe,21.48277778,-101.2166667,2094,operando
+11066,San Jose Iturbide (smn) (11066),San José Iturbide,21.01194444,-100.3652778,2136,operando
+11067,San Juan de los Llanos (11067),San Felipe,21.48638889,-101.1955556,2081,suspendida
+11068,San Luis de la Paz (11068),San Luis de la Paz,21.29916667,-100.5166667,2019,suspendida
+11069,San Pedro de los Almoloya (11069),San Felipe,21.6,-101.2333333,2130,suspendida
+11070,Santa Julia (11070),Guanajuato,21.07222222,-101.1961111,2552,operando
+11071,Santa Maria (dge) (11071),Silao de la Victoria,20.94333333,-101.4302778,1768,operando
+11072,Santa Rita (11072),Jaral del Progreso,20.29833333,-101.0669444,1728,operando
+11073,Santa Rosa el Mineral (11073),Guanajuato,21.02194444,-101.2533333,2074,operando
+11074,Silao (dge) (11074),Silao de la Victoria,20.94777778,-101.4427778,1784,operando
+11075,Soledad Nueva (11075),Dolores Hidalgo Cuna de la Independencia Nacional,21.28333333,-100.9169444,2011,operando
+11076,Presa Solis (11076),Acámbaro,20.05388889,-100.6727778,1901,operando
+11077,Tarandacuao (11077),Tarandacuao,19.9975,-100.5122222,1937,operando
+11078,Tarimoro (11078),Tarimoro,20.28722222,-100.7602778,1766,suspendida
+11079,Valle de Santiago (11079),Valle de Santiago,20.38277778,-101.1788889,1790,operando
+11080,Villa Doctor Mora (11080),Doctor Mora,21.15,-100.3166667,2125,suspendida
+11081,Villa Victoria (smn) (11081),Victoria,21.2,-100.2166667,1740,suspendida
+11082,Villa Victoria (dge) (11082),Victoria,21.21305556,-100.22,1759,operando
+11083,Xichu (11083),Xichú,21.29861111,-100.0925,1318,operando
+11085,Dos Arroyos (11085),San Miguel de Allende,20.85055556,-100.8472222,1899,operando
+11087,San Jose de Pantoja (11087),Valle de Santiago,20.40166667,-101.4027778,1693,operando
+11091,Penjamo (11091),Pénjamo,20.43333333,-101.7166667,1770,suspendida
+11092,San Miguel Octopan (11092),Celaya,20.57777778,-100.7455556,1764,operando
+11093,San Miguel de Allende (smn) (11093),San Miguel de Allende,20.91194444,-100.7436111,1917,operando
+11095,Leon (dge) (11095),León,21.13611111,-101.6988889,1828,operando
+11096,Salamanca (11096),Salamanca,20.56527778,-101.1997222,1717,operando
+11099,Mariano Abasolo (11099),Pénjamo,20.49944444,-101.9488889,1711,operando
+11100,Roque (11100),Celaya,20.58138889,-100.8280556,1722,operando
+11103,Valenciana (11103),Guanajuato,21.03416667,-101.2558333,2147,suspendida
+11105,Ameche (11105),Apaseo el Grande,20.55361111,-100.5827778,1780,operando
+11107,La Quemada (11107),San Felipe,21.3225,-101.1066667,2003,operando
+11110,Tres Encinos (11110),San Felipe,21.45861111,-101.2555556,2144,suspendida
+11111,Atarjea (11111),Atarjea,21.26722222,-99.71777778,1245,suspendida
+11112,Ciudad Manuel Doblado (11112),Manuel Doblado,20.74277778,-101.9525,1721,suspendida
+11113,Comonfort (11113),Comonfort,20.71972222,-100.7633333,1790,operando
+11114,El Refugio (11114),Salvatierra,20.12472222,-100.8536111,1837,suspendida
+11116,Hacienda San Lucas (11116),Jerécuaro,20.17611111,-100.555,2027,operando
+11117,Los Lobos (11117),Valle de Santiago,20.475,-101.2016667,1733,suspendida
+11119,Tierra Blanca (11119),Tierra Blanca,21.09638889,-100.1627778,1727,suspendida
+11121,El Pinillo (11121),Dolores Hidalgo Cuna de la Independencia Nacional,20.92222222,-101.0611111,1935,operando
+11122,Presa Jalpa (11122),Comonfort,20.7625,-100.6147222,1992,operando
+11123,Buenavista (11123),San Felipe,21.38611111,-101.0597222,2130,suspendida
+11124,El Chapin (11124),Guanajuato,20.87194444,-101.2444444,1853,operando
+11126,El Savilar (11126),Celaya,20.41777778,-100.7730556,1790,suspendida
+11130,La Luz (11130),Guanajuato,21.06361111,-101.3386111,2391,operando
+11131,Las Trojes (11131),Ocampo,21.555,-101.4091667,2198,suspendida
+11132,Puruagua (dge) (11132),Jerécuaro,20.07472222,-100.4575,2013,suspendida
+11133,Santa Maria Sanabria (11133),Valle de Santiago,20.41861111,-101.2994444,1705,suspendida
+11134,El Conejo (11134),Irapuato,20.71583333,-101.3697222,1740,operando
+11135,Arperos (11135),Guanajuato,21.10027778,-101.3983333,1992,operando
+11136,La Joyita (11136),Salamanca,20.51888889,-101.1736111,1716,operando
+11137,Presa la Purisima (11137),Guanajuato,20.87,-101.2947222,1840,operando
+11138,Presa la Gavia (11138),Romita,20.8425,-101.5938889,1772,operando
+11139,Camino Blanco (11139),Jerécuaro,20.17583333,-100.6422222,2490,suspendida
+11140,El Carbon (11140),Dolores Hidalgo Cuna de la Independencia Nacional,21.26944444,-101.1355556,2115,suspendida
+11141,Cienega de Negros (11141),Guanajuato,21.17333333,-101.2416667,2475,operando
+11142,El Cubo (11142),Salvatierra,20.28027778,-100.8997222,1738,operando
+11143,El Gallo (11143),Pénjamo,20.50972222,-101.8175,2348,suspendida
+11144,El Charape (11144),San José Iturbide,20.91916667,-100.4313889,2201,operando
+11145,La Gavia (11145),Cortazar,20.39805556,-100.8855556,2342,operando
+11146,Las Jicamas (11146),Valle de Santiago,20.27583333,-101.3588889,1859,operando
+11147,Miraflores (11147),Valle de Santiago,20.42833333,-101.1663889,1718,suspendida
+11148,El Obraje (11148),Apaseo el Grande,20.66777778,-100.6080556,2019,operando
+11149,Paracuaro (11149),Acámbaro,20.11055556,-100.7236111,1890,operando
+11150,San Jose el Alto (11150),Abasolo,21.07972222,-101.6066667,1827,operando
+11151,Tacubaya (11151),Pénjamo,20.30555556,-101.7827778,1708,operando
+11153,La Laborcita (11153),León,21.105,-101.5522222,1912,operando
+11154,San Francisco de Duran (11154),León,21.00527778,-101.6211111,1790,suspendida
+11155,Corral de Piedras (11155),San Miguel de Allende,20.97472222,-100.5933333,2041,operando
+11156,El Dormido (11156),Santiago Maravatío,20.12722222,-101.0283333,1907,operando
+11157,Peñuelas (11157),San Francisco del Rincón,20.88083333,-101.8555556,1753,suspendida
+11158,Piñicuaro (11158),Moroleón,20.04888889,-101.2408333,2130,operando
+11159,Presa el Barrial (11159),San Francisco del Rincón,21.04861111,-101.8383333,1787,operando
+11160,San Isidro (11160),Ocampo,21.64305556,-101.4788889,2269,operando
+11161,El Vergel (11161),San Luis de la Paz,21.45,-100.6636111,2192,operando
+11162,Comanjilla (11162),Silao de la Victoria,21.06833333,-101.4747222,1898,operando
+11163,La Jaula (11163),San Diego de la Unión,21.45694444,-100.8655556,2057,suspendida
+11164,El Copal (11164),Irapuato,20.74083333,-101.3352778,1750,suspendida
+11165,Chichimequillas (11165),Silao de la Victoria,21.04194444,-101.4361111,1898,operando
+11166,El Gigante (11166),Maravatío,19.9725,-100.4511111,1971,operando
+11167,San Juan Pan de Arriba (11167),San Diego de la Unión,21.475,-100.9191667,2107,suspendida
+11168,San Juan Temascatio (11168),Irapuato,20.73527778,-101.2261111,1780,operando
+11169,Tres Guerras (11169),Celaya,20.51138889,-100.7891667,1758,operando
+11170,C.e.m.s.i. Irapuato (11170),Irapuato,20.69472222,-101.3763889,1735,suspendida
+11171,Jaral del Progreso (11171),Jaral del Progreso,20.37972222,-101.0561111,1735,suspendida
+11172,Presa Paso de Vaqueros (11172),San Luis de la Paz,21.35111111,-100.3755556,1943,operando

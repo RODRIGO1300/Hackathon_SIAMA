@@ -42,6 +42,22 @@ Proponemos un piloto en Salamanca con el equipo de SIAMA, productores y personal
 
 Queremos que, al volver a su historial, la productora pueda responder tres preguntas antes de usarlo para planear su siguiente temporada. ¿Qué registró la estación? ¿Qué se pudo estimar con los datos disponibles? ¿Dónde sigue faltando información? Eso es lo que proponemos sumar a SIAMA.
 
+## Notas técnicas para explicar las diapositivas
+
+Usa una frase por diapositiva durante el pitch. Deja las demás como apoyo para la demo o las preguntas.
+
+| Diapositiva | Cómo explicarlo en voz alta |
+| --- | --- |
+| 1 · El problema | “Cero milímetros significa que la estación registró un día sin lluvia. Un espacio en blanco significa que falta el dato. Esa distinción cambia cómo leemos el historial.” |
+| 2 · Cómo estimamos | “Revisamos los registros y usamos días en los que varias estaciones sí midieron para ver cuáles se comportan de forma parecida. Con ese historial podemos estimar algunos días faltantes. Cada estimación muestra su rango de incertidumbre. Si falta evidencia, dejamos el vacío marcado.” |
+| 3 · Qué muestra la demo | “Aquí, un día seco es un día con menos de un milímetro de lluvia. Entre junio y septiembre, buscamos la secuencia más larga de esos días. El porcentaje de días medidos indica cuánto del periodo está respaldado por mediciones de la estación.” |
+| 4 · Cómo lo probamos | “Apartamos mediciones conocidas, estimamos esos días y después comparamos con lo que la estación había registrado. En los días que pudimos estimar, la diferencia absoluta promedio fue de 1,5 mm. Aproximadamente uno de cada cuatro días de prueba quedó sin estimación.” |
+| 5 · Cómo se integra | “La API entrega las series y sus marcas de calidad. Un componente web muestra esa información dentro de los monitores de SIAMA, que sigue siendo el punto de consulta.” |
+
+**Si preguntan por qué importa el intervalo de incertidumbre.** “Un rango estrecho indica menos incertidumbre según el método. Cuando el rango es amplio, hay que tomar con más cautela el valor estimado.”
+
+**Si preguntan si la lluvia explica el rendimiento.** “El historial nos ayuda a verificar si hubo una racha seca en la estación. Para entender el rendimiento también hacen falta datos del cultivo, del suelo y del manejo de la parcela.”
+
 ## Referencias para preparar la presentación
 
 - [Vista Clima para el campo](../../web/agro.html) disponible en la ruta `/agro` de la demo local.

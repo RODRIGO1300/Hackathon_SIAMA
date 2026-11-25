@@ -3,10 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agro SIAMA · El clima para tu campo</title>
+<title>El clima para tu campo · SIAMA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
   /* IBM Carbon Design System (tema g10) con colores de semáforo para lectura rápida */
   :root {
@@ -15,7 +16,6 @@
     --verde:#198038; --verde-bg:#defbe6; --rojo:#da1e28; --rojo-txt:#a2191f; --rojo-bg:#fff1f1;
     --naranja:#ff832b; --naranja-txt:#8a3800; --naranja-bg:#fff2e8; --amarillo:#f1c21b; --amarillo-bg:#fcf4d6; --amarillo-txt:#684e00;
     --celeste-bg:#edf5ff; --gris-bg:#e0e0e0;
-    --este:#0f62fe; --normal:#a8a8a8;
   }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--fondo); color:var(--texto); font-family:"IBM Plex Sans", system-ui, "Segoe UI", sans-serif;
@@ -27,21 +27,21 @@
   .shell a:hover { color:#fff; text-decoration:underline; }
   main { max-width:1200px; margin:0 auto; padding:24px 16px 64px; display:grid; grid-template-columns:minmax(0,1fr); gap:24px; }
 
-  /* Encabezado */
-  .hero h1 { font-size:36px; line-height:1.2; font-weight:600; margin:0; }
-  .hero .fecha-datos { display:inline-flex; align-items:center; gap:8px; margin-top:12px; padding:8px 14px; background:var(--capa);
+  /* Fecha de los datos y fuente */
+  .datos { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; }
+  .fecha-datos { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; background:var(--capa);
     border-left:4px solid var(--azul); font-size:18px; }
-  .hero .fuente { font-size:14px; color:var(--texto2); margin:8px 0 0; }
-  @media (max-width:700px) { .hero h1 { font-size:28px; } }
+  .estacion-mini { font-size:14px; color:var(--texto2); display:inline-flex; align-items:center; gap:6px; }
+  .estacion-mini select { font:inherit; font-size:14px; border:0; border-bottom:1px solid var(--borde-fuerte); background:transparent; padding:4px 2px; color:var(--texto); }
+  .fuente { font-size:14px; color:var(--texto2); margin:6px 0 0; flex-basis:100%; }
 
-  .controles { background:var(--capa); padding:16px; display:grid; gap:16px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); align-items:end; }
-  .controles label { display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--texto2); }
-  .controles select, .controles input { height:48px; padding:0 14px; font:inherit; font-size:17px; color:var(--texto); background:var(--capa2);
+  /* Filtros */
+  .filtros { background:var(--capa); padding:16px; display:grid; gap:16px; grid-template-columns:repeat(2, minmax(0,1fr)); }
+  @media (max-width:520px) { .filtros { grid-template-columns:minmax(0,1fr); } }
+  .filtros label { display:flex; flex-direction:column; gap:6px; font-size:14px; color:var(--texto2); }
+  .filtros select { height:52px; padding:0 14px; font:inherit; font-size:18px; color:var(--texto); background:var(--capa2);
     border:0; border-bottom:1px solid var(--borde-fuerte); border-radius:0; }
-  .controles select:focus, .controles input:focus { outline:2px solid var(--azul); outline-offset:-2px; }
-  .controles .ayuda { font-size:13px; }
-  .boton-link { border:0; background:none; color:var(--azul); font:inherit; font-size:14px; cursor:pointer; padding:0; text-align:left; }
-  .boton-link:hover { text-decoration:underline; }
+  .filtros select:focus, .estacion-mini select:focus { outline:2px solid var(--azul); outline-offset:-2px; }
 
   /* Resumen en una frase */
   .resumen { background:var(--shell); color:#f4f4f4; padding:24px; font-size:22px; line-height:1.45; }
@@ -66,18 +66,36 @@
   .indicador.amarillo .estado { color:var(--amarillo-txt); } .indicador.gris .estado { color:var(--texto2); }
   .indicador .detalle { margin:0; font-size:15px; }
   .indicador .pie { margin-top:auto; font-size:13px; color:var(--texto2); }
-
-  /* Barra comparativa: zonas de color y una marca para este año */
   .medidor { position:relative; height:44px; margin:4px 0 0; }
   .medidor .zonas { position:absolute; left:0; right:0; top:8px; height:14px; display:flex; border-radius:7px; overflow:hidden; }
   .medidor .zonas span { height:100%; }
   .medidor .marca { position:absolute; top:0; width:4px; height:30px; background:var(--texto); border-radius:2px; transform:translateX(-2px); }
   .medidor .etiquetas { position:absolute; left:0; right:0; top:28px; display:flex; justify-content:space-between; font-size:12px; color:var(--texto2); }
   .barras-agua { display:grid; gap:6px; font-size:14px; }
-  .barras-agua .fila { display:grid; grid-template-columns:110px 1fr auto; gap:8px; align-items:center; }
+  .barras-agua .fila { display:grid; grid-template-columns:90px 1fr auto; gap:8px; align-items:center; }
   .barras-agua .barra { height:14px; border-radius:0 7px 7px 0; min-width:2px; }
   .meses-helada { display:grid; grid-template-columns:repeat(12, 1fr); gap:3px; }
-  .meses-helada span { text-align:center; font-size:11px; padding:6px 0; border-radius:3px; color:var(--texto); }
+  .meses-helada span { text-align:center; font-size:11px; padding:6px 0; border-radius:3px; }
+  .meses-helada span.sel { outline:2px solid var(--texto); }
+
+  /* Cultivos */
+  .cultivos { display:grid; gap:12px; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); }
+  .cultivo { background:var(--capa); padding:16px 18px; display:flex; flex-direction:column; gap:8px; border-left:6px solid var(--borde); }
+  .cultivo.bien { border-left-color:var(--verde); } .cultivo.riego { border-left-color:var(--amarillo); } .cultivo.riesgo { border-left-color:var(--rojo); }
+  .cultivo h3 { font-size:20px; margin:0; }
+  .cultivo p { margin:0; font-size:15px; }
+  .cultivo .meta { font-size:13px; color:var(--texto2); }
+  .cultivo .nota { font-size:14px; background:var(--capa2); padding:6px 10px; }
+  .aviso-cultivos { font-size:13px; color:var(--texto2); margin:10px 0 0; }
+  .calendario { background:var(--capa); padding:16px; overflow-x:auto; }
+  .calendario table { border-collapse:separate; border-spacing:3px; width:100%; min-width:640px; font-size:14px; }
+  .calendario th { font-weight:600; color:var(--texto2); text-align:center; padding:4px; }
+  .calendario th:first-child, .calendario td:first-child { text-align:left; white-space:nowrap; padding-right:10px; }
+  .calendario td.m { height:26px; border-radius:3px; background:var(--capa2); }
+  .calendario td.m.bien { background:#42be65; } .calendario td.m.riego { background:#f1c21b; } .calendario td.m.riesgo { background:#fa4d56; }
+  .calendario .grupo td { font-weight:600; padding-top:10px; color:var(--texto2); }
+  .leyenda { display:flex; flex-wrap:wrap; gap:14px; font-size:14px; margin-top:8px; }
+  .leyenda i { display:inline-block; width:14px; height:14px; border-radius:3px; margin-right:6px; vertical-align:-2px; }
 
   /* Gráficas */
   .graficas { display:grid; gap:16px; grid-template-columns:repeat(2, minmax(0,1fr)); }
@@ -87,7 +105,6 @@
   .grafica .respuesta { font-size:16px; margin:0; padding:10px 12px; background:var(--celeste-bg); border-left:4px solid var(--azul); }
   .grafica .leer { font-size:13px; color:var(--texto2); margin:0; }
   .lienzo { height:300px; }
-  .ancha { grid-column:1 / -1; }
 
   .bloque { background:var(--capa); padding:20px; }
   .bloque p { margin:0 0 10px; }
@@ -97,36 +114,46 @@
   .glosario div { background:var(--capa2); padding:12px 14px; }
   .glosario b { display:block; }
   .tabla { overflow-x:auto; padding-bottom:20px; }
-  table { border-collapse:collapse; width:100%; font-size:15px; }
-  th { background:var(--borde); text-align:right; font-weight:600; }
-  th, td { padding:10px 12px; border-bottom:1px solid var(--borde); text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
-  th:first-child, td:first-child { text-align:left; }
-  tr.actual td { background:var(--celeste-bg); font-weight:600; }
-  .tag { display:inline-block; padding:2px 10px; border-radius:12px; font-size:13px; background:var(--gris-bg); }
+  table.datos-anios { border-collapse:collapse; width:100%; font-size:15px; }
+  .datos-anios th { background:var(--borde); text-align:right; font-weight:600; }
+  .datos-anios th, .datos-anios td { padding:10px 12px; border-bottom:1px solid var(--borde); text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .datos-anios th:first-child, .datos-anios td:first-child { text-align:left; }
+  .datos-anios tr.actual td { background:var(--celeste-bg); font-weight:600; }
+  .tag { display:inline-block; padding:2px 10px; border-radius:12px; font-size:13px; background:var(--gris-bg); width:fit-content; }
   .tag.verde { background:var(--verde-bg); color:var(--verde); } .tag.rojo { background:var(--rojo-bg); color:var(--rojo-txt); }
   .tag.azul { background:var(--celeste-bg); color:var(--azul-osc); } .tag.naranja { background:var(--naranja-bg); color:var(--naranja-txt); }
   .tag.amarillo { background:var(--amarillo-bg); color:var(--amarillo-txt); }
+  /* Mapa */
+  .mapa-bloque { background:var(--capa); padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .capas { display:flex; flex-wrap:wrap; gap:8px; }
+  .capas button { display:inline-flex; align-items:center; gap:8px; font:inherit; font-size:16px; padding:10px 14px; cursor:pointer;
+    background:var(--capa2); color:var(--texto); border:2px solid transparent; }
+  .capas button[aria-selected=true] { background:var(--celeste-bg); border-color:var(--azul); font-weight:600; }
+  .capas button:focus-visible { outline:2px solid var(--azul); outline-offset:2px; }
+  #mapa { height:480px; background:#e8eef2; }
+  @media (max-width:600px) { #mapa { height:360px; } }
+  .mapa-bloque h3 { font-size:18px; margin:0; }
+  .mapa-bloque .respuesta { font-size:16px; margin:0; padding:10px 12px; background:var(--celeste-bg); border-left:4px solid var(--azul); }
+  .ver-estacion { margin-top:6px; font:inherit; font-size:13px; padding:4px 10px; border:0; background:var(--azul); color:#fff; cursor:pointer; }
   .error { background:var(--rojo-bg); color:var(--rojo-txt); padding:16px; }
   .cargando { opacity:.5; transition:opacity .2s; }
 </style>
 </head>
 <body>
 <header class="shell">
-  <span>Agro SIAMA <b>El clima para tu campo</b></span>
+  <span>SIAMA <b>El clima para tu campo</b></span>
   <a href="demo.html">Datos técnicos</a>
 </header>
 <main id="principal">
-  <section class="hero">
-    <h1 id="titulo">El clima para tu campo</h1>
+  <section class="datos">
     <div class="fecha-datos" id="fecha-datos">Cargando…</div>
+    <label class="estacion-mini">Estación:<select id="estacion"></select></label>
     <p class="fuente" id="fuente"></p>
   </section>
 
-  <form class="controles" onsubmit="return false">
-    <label>Estación del clima<select id="estacion"></select></label>
-    <label>Año<select id="anio"></select></label>
-    <label>¿Cuándo sembró? (opcional)<input type="date" id="siembra"><span class="ayuda" id="ayuda-siembra"></span></label>
-    <button type="button" class="boton-link" id="quitar-siembra" hidden>Quitar la fecha de siembra</button>
+  <form class="filtros" onsubmit="return false">
+    <label>Temporada<select id="ciclo"></select></label>
+    <label>Mes<select id="mes"></select></label>
   </form>
 
   <div id="error" class="error" hidden></div>
@@ -134,8 +161,26 @@
   <section class="resumen" id="resumen" aria-live="polite">Cargando…</section>
 
   <section>
+    <h2>Mapa de Guanajuato</h2>
+    <div class="mapa-bloque">
+      <div class="capas" id="capas" role="tablist" aria-label="Qué ver en el mapa"></div>
+      <h3 id="titulo-capa"></h3>
+      <p class="respuesta" id="r-mapa">Cargando el mapa…</p>
+      <div id="mapa" role="img" aria-label="Mapa de Guanajuato con zonas de color"></div>
+      <div class="leyenda" id="leyenda-mapa"></div>
+      <p class="aviso-cultivos" id="nota-mapa" style="margin:0"></p>
+    </div>
+  </section>
+
+  <section>
     <h2 id="titulo-indicadores">Lo más importante</h2>
     <div class="indicadores" id="indicadores"></div>
+  </section>
+
+  <section>
+    <h2 id="titulo-cultivos">¿Qué se puede sembrar?</h2>
+    <div id="cultivos"></div>
+    <p class="aviso-cultivos" id="aviso-cultivos"></p>
   </section>
 
   <section>
@@ -143,55 +188,57 @@
     <div class="graficas">
       <article class="grafica"><h3>¿Cuánto llovió cada mes?</h3><p class="respuesta" id="r-lluvia-mes"></p>
         <div class="lienzo" id="g-lluvia-mes"></div>
-        <p class="leer">Barras azules: este año. Barras grises: un año normal. Las barras rayadas tienen días estimados.</p></article>
+        <p class="leer">Barras azules: esta temporada. Barras grises: lo normal. Las barras rayadas tienen días estimados.</p></article>
       <article class="grafica"><h3>¿Cómo va la lluvia de la temporada?</h3><p class="respuesta" id="r-acumulada"></p>
         <div class="lienzo" id="g-acumulada"></div>
-        <p class="leer">Lluvia sumada desde el 1 de junio. La franja gris marca lo que pasa en la mayoría de los años.</p></article>
+        <p class="leer">Lluvia sumada mes a mes desde el inicio de la temporada, contra lo normal.</p></article>
       <article class="grafica"><h3>¿Qué tan calientes fueron los días y frías las noches?</h3><p class="respuesta" id="r-temperatura"></p>
         <div class="lienzo" id="g-temperatura"></div>
-        <p class="leer">Línea roja: temperatura de la tarde. Línea azul: temperatura de la madrugada. Punteadas: un año normal.</p></article>
+        <p class="leer">Línea roja: temperatura de la tarde. Línea azul: temperatura de la madrugada. Punteadas: lo normal.</p></article>
       <article class="grafica"><h3>¿En qué meses puede helar?</h3><p class="respuesta" id="r-helada"></p>
         <div class="lienzo" id="g-helada"></div>
         <p class="leer">De cada 100 años, en cuántos hubo al menos una helada en ese mes.</p></article>
       <article class="grafica"><h3>¿Le alcanzó el agua al cultivo?</h3><p class="respuesta" id="r-agua"></p>
         <div class="lienzo" id="g-agua"></div>
         <p class="leer">Azul: la lluvia que cayó. Naranja: el agua que pierde un cultivo por el sol y el viento. Si la naranja es más alta, faltó agua.</p></article>
-      <article class="grafica"><h3>¿Cómo fue la temporada de lluvias cada año?</h3><p class="respuesta" id="r-anios"></p>
+      <article class="grafica"><h3>¿Cómo fue esta temporada en otros años?</h3><p class="respuesta" id="r-anios"></p>
         <div class="lienzo" id="g-anios"></div>
-        <p class="leer">Lluvia de junio a octubre de cada año. El año elegido tiene borde negro.</p></article>
+        <p class="leer">Lluvia de cada temporada completa del mismo tipo. La temporada elegida tiene borde negro.</p></article>
     </div>
   </section>
 
   <section class="bloque">
     <h2 style="margin-top:0">¿Qué tan confiables son estos datos?</h2>
     <p id="confianza-texto"></p>
-    <p class="ayuda" style="font-size:14px;color:var(--texto2);margin:0">Cuando a la estación le faltaron días, los calculamos con la estación más cercana.
+    <p style="font-size:14px;color:var(--texto2);margin:0">Cuando a la estación le faltaron días, los calculamos con la estación más cercana.
       Nunca presentamos un dato calculado como si se hubiera medido; si no se pudo calcular bien, lo decimos en vez de inventarlo.</p>
   </section>
 
   <details>
     <summary>Palabras que usamos</summary>
     <div class="glosario">
-      <div><b>Un año normal</b>El promedio de todos los años con datos de esta estación (desde 1981).</div>
-      <div><b>Temporada de lluvias</b>Del 1 de junio al 31 de octubre: el temporal de primavera-verano.</div>
+      <div><b>Lo normal</b>El promedio de ese mes en todos los demás años con datos de esta estación (desde 1981).</div>
+      <div><b>Primavera-Verano</b>Ciclo de siembras de marzo a septiembre: el temporal y los cultivos de riego de primavera.</div>
+      <div><b>Otoño-Invierno</b>Ciclo de siembras de octubre a febrero, casi siempre con riego: trigo, cebada, hortalizas.</div>
+      <div><b>Temporal</b>Cultivo que depende solo de la lluvia, sin riego.</div>
       <div><b>Helada</b>Un día en que la temperatura bajó a 0 °C o menos.</div>
-      <div><b>Inicio de lluvias</b>El primer día desde mayo con 20 mm o más en 3 días, sin quedarse 10 días seco el mes siguiente.</div>
       <div><b>Agua que pierde el cultivo</b>Lo que se evapora del suelo y de las plantas por el sol, el calor y el viento.</div>
-      <div><b>Calor para el cultivo</b>Cuánto calor útil ha recibido la planta desde la siembra. Con más calor, el cultivo crece más rápido.</div>
       <div><b>Días medidos</b>Días que registró la estación. Los demás se calcularon con la estación vecina.</div>
     </div>
   </details>
 
   <details>
-    <summary>Tabla de todos los años</summary>
+    <summary>Tabla de todos los ciclos</summary>
     <div class="tabla" id="historico"></div>
   </details>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const MESES_LARGOS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const Mayus = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const num = (x, d = 0) => x == null ? "—" : Number(x).toLocaleString("es-MX", { maximumFractionDigits: d, minimumFractionDigits: d });
@@ -202,6 +249,7 @@ function fecha(iso, conAnio = false) {
 }
 function fechaCorta(iso) { if (!iso) return "—"; const [a, m, d] = iso.slice(0, 10).split("-").map(Number); return `${d} ${MESES[m - 1]} ${a}`; }
 function lista(xs) { return xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`; }
+const suma = (xs) => xs.reduce((a, b) => a + b, 0);
 const ICONO = {
   lluvia: '<svg width="22" height="22" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M16 2s-9 10.5-9 17a9 9 0 0 0 18 0C25 12.5 16 2 16 2zm0 24a7 7 0 0 1-7-7c0-4.4 5-11 7-13.6 2 2.6 7 9.2 7 13.6a7 7 0 0 1-7 7z"/></svg>',
   helada: '<svg width="22" height="22" viewBox="0 0 32 32" fill="currentColor" aria-hidden="true"><path d="M15 2h2v6l3-3 1.4 1.4L17 10.8V14l3.4-2 1.6-6 2 .5-1.2 4.2 5.2-3 1 1.7-5.2 3 4.2 1.2-.5 2-6-1.6L18 16l3.4 2 6-1.6.5 2-4.2 1.2 5.2 3-1 1.7-5.2-3 1.2 4.2-2 .5-1.6-6L17 18v3.2l4.4 4.4L20 27l-3-3v6h-2v-6l-3 3-1.4-1.4 4.4-4.4V18l-3.4 2-1.6 6-2-.5 1.2-4.2-5.2 3-1-1.7 5.2-3-4.2-1.2.5-2 6 1.6L14 16l-3.4-2-6 1.6-.5-2 4.2-1.2-5.2-3 1-1.7 5.2 3-1.2-4.2 2-.5 1.6 6L15 14v-3.2L10.6 6.4 12 5l3 3z"/></svg>',
@@ -210,12 +258,11 @@ const ICONO = {
 };
 const params = new URLSearchParams(location.search);
 const estado = { municipio: params.get("municipio") || "Salamanca", estacion: params.get("estacion"),
-  anio: params.get("anio"), siembra: params.get("siembra") };
-let pedido = 0, origen = {};
+  ciclo: params.get("ciclo"), inicio: parseInt(params.get("inicio")) || null, mes: parseInt(params.get("mes")) || 0 };
+let pedido = 0, origen = {}, ultimoPanel = null;
 
-/* ---------- Indicadores ---------- */
+/* ---------- Piezas visuales ---------- */
 function medidor(valor, zonas, etiquetas) {
-  // zonas: [[hasta, color], ...] sobre una escala de 0 a max
   const max = zonas[zonas.length - 1][0];
   let prev = 0;
   const partes = zonas.map(([hasta, color]) => { const w = 100 * (hasta - prev) / max; prev = hasta; return `<span style="width:${w}%;background:${color}"></span>`; }).join("");
@@ -223,84 +270,176 @@ function medidor(valor, zonas, etiquetas) {
   return `<div class="medidor" role="img" aria-label="${esc(etiquetas.aria)}"><div class="zonas">${partes}</div>
     <div class="marca" style="left:${pos}%"></div><div class="etiquetas">${etiquetas.textos.map((t) => `<span>${esc(t)}</span>`).join("")}</div></div>`;
 }
-function pie(pct, sinDato) {
-  if (pct == null) return "Sin datos";
-  return `${num(pct)} % de días medidos${sinDato > 0 ? ` · ${num(sinDato)} % sin dato` : ""}`;
-}
 function tarjeta(color, icono, titulo, estadoTxt, cuerpo, pieTxt) {
   return `<article class="indicador ${color}"><p class="titulo">${icono}${esc(titulo)}</p><p class="estado">${esc(estadoTxt)}</p>${cuerpo}<p class="pie">${pieTxt}</p></article>`;
 }
 const ZONAS_PCT = [[80, "#ffd7d9"], [120, "#a7f0ba"], [200, "#a6c8ff"]];
+const colorMesHelada = (v) => v >= 50 ? "#ffb3b8" : v >= 20 ? "#ffd6b3" : v > 0 ? "#fcf4d6" : "#f4f4f4";
+function calendarioHeladas(meses, sel) {
+  return `<div class="meses-helada" style="grid-template-columns:repeat(${meses.length},1fr)" aria-label="Meses con riesgo de helada">${meses.map((f) =>
+    `<span class="${sel === f.mes ? "sel" : ""}" style="background:${colorMesHelada(f.prob_helada)}" title="${MESES_LARGOS[f.mes - 1]}: hiela en ${f.prob_helada} de cada 100 años">${MESES[f.mes - 1]}</span>`).join("")}</div>`;
+}
+function cuadroAgua(lluvia, pierde) {
+  const max = Math.max(lluvia || 0, pierde || 0, 1);
+  return `<div class="barras-agua">
+    <div class="fila"><span>Llovió</span><span class="barra" style="width:${100 * (lluvia || 0) / max}%;background:#0f62fe"></span><b>${num(lluvia)} mm</b></div>
+    <div class="fila"><span>Necesitó</span><span class="barra" style="width:${100 * (pierde || 0) / max}%;background:#ff832b"></span><b>${num(pierde)} mm</b></div></div>`;
+}
+function estadoLluvia(x, normal) {
+  if (normal == null) return ["gris", "Sin comparación", null];
+  if (normal <= 5) return x > 10 ? ["azul", "Llovió, aunque casi nunca llueve", null] : ["verde", "Seco, como siempre", null];
+  const pct = 100 * x / normal;
+  return [pct < 80 ? "rojo" : pct > 120 ? "azul" : "verde", pct < 80 ? "Llovió menos de lo normal" : pct > 120 ? "Llovió más de lo normal" : "Lluvia normal", pct];
+}
+function estadoAgua(bal) {
+  return bal < -50 ? ["rojo", "Faltó agua", "El cultivo perdió más agua de la que llovió: un cultivo en pie necesitó riego."]
+    : bal < 0 ? ["amarillo", "Agua justa", "La lluvia casi alcanzó. Vigile la humedad del suelo."]
+    : ["verde", "Agua suficiente", "La lluvia alcanzó para el cultivo."];
+}
 
-function indicadorLluvia(p) {
-  const l = p.lluvia;
-  if (l.acumulada_mm == null) return tarjeta("gris", ICONO.lluvia, "Lluvia de la temporada", "Sin datos suficientes",
-    `<p class="detalle">Faltan muchos días de registro para saber cuánto llovió.</p>`, pie(l.pct_dias_medidos, l.pct_sin_dato));
-  const e = { debajo: ["rojo", "Llovió menos de lo normal"], normal: ["verde", "Lluvia normal"], arriba: ["azul", "Llovió más de lo normal"],
-    sin_dato: ["gris", "Sin comparación"] }[l.estado];
-  return tarjeta(e[0], ICONO.lluvia, "Lluvia de la temporada", e[1],
-    `<p class="detalle"><b>${num(l.acumulada_mm)} mm</b> desde el 1 de junio. Un año normal: ${num(l.promedio_mm)} mm.</p>
-     ${l.pct_del_promedio != null ? medidor(l.pct_del_promedio, ZONAS_PCT, { aria: `${num(l.pct_del_promedio)} por ciento de un año normal`, textos: ["Seco", "Normal", "Lluvioso"] }) : ""}`,
-    pie(l.pct_dias_medidos, l.pct_sin_dato));
+/* ---------- Datos del ciclo ---------- */
+const cicloActual = (p) => p.tablero.temporada;
+const conDatos = (f) => f.lluvia != null || f.tmin != null;
+function nombresMeses(fs) {
+  if (!fs.length) return "";
+  return fs.length === 1 ? MESES_LARGOS[fs[0].mes - 1] : `${MESES_LARGOS[fs[0].mes - 1]} a ${MESES_LARGOS[fs[fs.length - 1].mes - 1]}`;
 }
-function indicadorHeladas(p) {
-  const h = p.heladas, prob = p.tablero.mensual.prob_helada;
-  const colorMes = (v) => v >= 50 ? "#ffb3b8" : v >= 20 ? "#ffd6b3" : v > 0 ? "#fcf4d6" : "#f4f4f4";
-  const calendario = `<div class="meses-helada" aria-label="Meses con riesgo de helada">${prob.map((v, i) =>
-    `<span style="background:${colorMes(v)}" title="${MESES_LARGOS[i]}: ${v} % de los años">${MESES[i][0].toUpperCase()}</span>`).join("")}</div>`;
-  if (h.dias_helada == null) return tarjeta("gris", ICONO.helada, "Heladas", "Sin datos suficientes",
-    `<p class="detalle">Faltan muchos días de temperatura este año.</p>${calendario}`, pie(h.pct_dias_medidos, h.pct_sin_dato));
-  const prom = h.dias_helada_promedio ?? 0;
-  let color = "verde", txt = h.dias_helada === 0 ? "No heló" : `Heló ${h.dias_helada} ${h.dias_helada === 1 ? "día" : "días"}`;
-  if (h.dias_helada > prom * 1.3 + 0.5) color = "rojo";
-  else if (h.dias_helada > 0) color = "amarillo";
-  return tarjeta(color, ICONO.helada, `Heladas en ${p.anio}`, txt,
-    `<p class="detalle">En un año normal hiela ${num(prom, prom < 10 ? 1 : 0)} ${prom === 1 ? "día" : "días"}. Meses con riesgo (más color, más riesgo):</p>${calendario}`,
-    pie(h.pct_dias_medidos, h.pct_sin_dato));
+function agregados(c) {
+  const fl = c.meses.filter((f) => f.lluvia != null), ft = c.meses.filter((f) => f.tmax != null && f.tmin != null);
+  const fh = c.meses.filter((f) => f.heladas != null), fa = c.meses.filter((f) => f.lluvia != null && f.evaporacion != null);
+  const med = c.meses.filter((f) => f.pct_medido != null);
+  const prom = (fs, k) => fs.length ? suma(fs.map((f) => f[k])) / fs.length : null;
+  return {
+    fl, ft, fh, fa,
+    lluvia: fl.length ? suma(fl.map((f) => f.lluvia)) : null, lluvia_normal: fl.length ? suma(fl.map((f) => f.lluvia_normal || 0)) : null,
+    tmax: prom(ft, "tmax"), tmax_normal: prom(ft, "tmax_normal"), tmin: prom(ft, "tmin"), tmin_normal: prom(ft, "tmin_normal"),
+    heladas: fh.length ? suma(fh.map((f) => f.heladas)) : null, heladas_normal: fh.length ? suma(fh.map((f) => f.heladas_normal || 0)) : null,
+    agua_lluvia: fa.length ? suma(fa.map((f) => f.lluvia)) : null, agua_pierde: fa.length ? suma(fa.map((f) => f.evaporacion)) : null,
+    medido: med.length ? suma(med.map((f) => f.pct_medido)) / med.length : null,
+    faltan: c.meses.filter((f) => !conDatos(f)),
+  };
 }
-function indicadorCalor(p) {
-  const c = p.calor, pct = c.pct_del_promedio;
-  if (c.grados_dia == null) return tarjeta("gris", ICONO.calor, "Calor para el cultivo", "Sin datos suficientes",
-    `<p class="detalle">Faltan muchos días de temperatura desde la siembra.</p>`, pie(c.pct_dias_medidos, c.pct_sin_dato));
-  let color = "verde", txt = "Calor normal", det = "El cultivo crece a su ritmo normal.";
-  if (pct > 110) { color = "naranja"; txt = "Más calor de lo normal"; det = "El cultivo crece más rápido: puede florear y madurar antes."; }
-  else if (pct < 90) { color = "azul"; txt = "Menos calor de lo normal"; det = "El cultivo crece más lento: la cosecha puede retrasarse."; }
-  const zonas = [[90, "#a6c8ff"], [110, "#a7f0ba"], [200, "#ffd6b3"]];
-  return tarjeta(color, ICONO.calor, "Calor para el cultivo", txt,
-    `<p class="detalle">${det}${c.dias_calor_35 ? ` Hubo ${c.dias_calor_35} días de más de 35 °C.` : ""}</p>
-     ${pct != null ? medidor(pct, zonas, { aria: `${num(pct)} por ciento del calor normal`, textos: ["Fresco", "Normal", "Caluroso"] }) : ""}`,
-    pie(c.pct_dias_medidos, c.pct_sin_dato));
+
+/* ---------- Indicadores ---------- */
+function indicadoresCiclo(c) {
+  const g = agregados(c), out = [];
+  const pieTxt = g.medido != null ? `${num(g.medido)} % de días medidos` : "Sin datos";
+  const periodo = (fs) => fs.length < c.meses.length ? ` (${nombresMeses(fs)})` : "";
+  if (g.lluvia == null) out.push(tarjeta("gris", ICONO.lluvia, "Lluvia de la temporada", "Sin datos", `<p class="detalle">Todavía no hay meses completos con datos.</p>`, pieTxt));
+  else {
+    const e = estadoLluvia(g.lluvia, g.lluvia_normal);
+    out.push(tarjeta(e[0], ICONO.lluvia, `Lluvia de la temporada${periodo(g.fl)}`, e[1],
+      `<p class="detalle"><b>${num(g.lluvia)} mm</b>. Lo normal en esos meses: ${num(g.lluvia_normal)} mm.</p>
+       ${e[2] != null ? medidor(e[2], ZONAS_PCT, { aria: `${num(e[2])} por ciento de lo normal`, textos: ["Seco", "Normal", "Lluvioso"] }) : ""}`, pieTxt));
+  }
+  if (g.heladas == null) out.push(tarjeta("gris", ICONO.helada, "Heladas", "Sin datos", `<p class="detalle">Riesgo de helada en cada mes de la temporada:</p>${calendarioHeladas(c.meses)}`, pieTxt));
+  else {
+    const color = g.heladas > (g.heladas_normal || 0) * 1.3 + 0.5 ? "rojo" : g.heladas > 0 ? "amarillo" : "verde";
+    out.push(tarjeta(color, ICONO.helada, `Heladas${periodo(g.fh)}`, g.heladas === 0 ? "No heló" : `Heló ${g.heladas} ${g.heladas === 1 ? "día" : "días"}`,
+      `<p class="detalle">Lo normal en esos meses: ${num(g.heladas_normal, 1)} días. Riesgo de cada mes (más color, más riesgo):</p>${calendarioHeladas(c.meses)}`, pieTxt));
+  }
+  if (g.tmax == null) out.push(tarjeta("gris", ICONO.calor, "Temperatura", "Sin datos", `<p class="detalle">Todavía no hay meses completos con datos.</p>`, pieTxt));
+  else {
+    const dif = ((g.tmax - g.tmax_normal) + (g.tmin - g.tmin_normal)) / 2;
+    const e = dif > 1 ? ["naranja", "Más caluroso de lo normal"] : dif < -1 ? ["azul", "Más fresco de lo normal"] : ["verde", "Temperatura normal"];
+    out.push(tarjeta(e[0], ICONO.calor, `Temperatura${periodo(g.ft)}`, e[1],
+      `<p class="detalle">Tardes de <b>${num(g.tmax, 1)} °C</b> (normal ${num(g.tmax_normal, 1)}) y madrugadas de <b>${num(g.tmin, 1)} °C</b> (normal ${num(g.tmin_normal, 1)}).</p>`, pieTxt));
+  }
+  if (g.agua_lluvia == null) out.push(tarjeta("gris", ICONO.agua, "Agua para el cultivo", "Sin datos", `<p class="detalle">Todavía no hay meses completos con datos.</p>`, pieTxt));
+  else {
+    const e = estadoAgua(g.agua_lluvia - g.agua_pierde);
+    out.push(tarjeta(e[0], ICONO.agua, `Agua para el cultivo${periodo(g.fa)}`, e[1], `${cuadroAgua(g.agua_lluvia, g.agua_pierde)}<p class="detalle">${e[2]}</p>`, pieTxt));
+  }
+  return out.join("");
 }
-function indicadorAgua(p) {
-  const a = p.agua;
-  if (a.estado === "sin_dato") return tarjeta("gris", ICONO.agua, "Agua para el cultivo", "Sin datos suficientes",
-    `<p class="detalle">Faltan días para calcular el agua del último mes.</p>`, pie(a.pct_dias_medidos, a.pct_sin_dato));
-  const e = { deficit: ["rojo", "Faltó agua", "Si tiene cultivo, considere un riego de auxilio."],
-    justo: ["amarillo", "Agua justa", "La lluvia apenas alcanzó. Vigile la humedad del suelo."],
-    suficiente: ["verde", "Agua suficiente", "La lluvia alcanzó para el cultivo."] }[a.estado];
-  const max = Math.max(a.lluvia_30d_mm || 0, a.et0_30d_mm || 0, 1);
-  return tarjeta(e[0], ICONO.agua, `Agua para el cultivo (30 días al ${fecha(a.hasta)})`, e[1],
-    `<div class="barras-agua">
-      <div class="fila"><span>Llovió</span><span class="barra" style="width:${100 * (a.lluvia_30d_mm || 0) / max}%;background:#0f62fe"></span><b>${num(a.lluvia_30d_mm)} mm</b></div>
-      <div class="fila"><span>Necesitó</span><span class="barra" style="width:${100 * (a.et0_30d_mm || 0) / max}%;background:#ff832b"></span><b>${num(a.et0_30d_mm)} mm</b></div>
-     </div><p class="detalle">${e[2]}</p>`, pie(a.pct_dias_medidos, a.pct_sin_dato));
+function indicadoresMes(c, f) {
+  const nom = MESES_LARGOS[f.mes - 1], out = [];
+  const pieTxt = f.pct_medido != null ? `${num(f.pct_medido)} % de días medidos` : "Sin datos de este mes";
+  if (f.lluvia == null) out.push(tarjeta("gris", ICONO.lluvia, `Lluvia en ${nom}`, "Sin datos aún", `<p class="detalle">En un ${nom} normal llueven ${num(f.lluvia_normal)} mm.</p>`, pieTxt));
+  else {
+    const e = estadoLluvia(f.lluvia, f.lluvia_normal);
+    out.push(tarjeta(e[0], ICONO.lluvia, `Lluvia en ${nom} ${f.anio}`, e[1], `<p class="detalle"><b>${num(f.lluvia)} mm</b>. En un ${nom} normal: ${num(f.lluvia_normal)} mm.</p>
+      ${e[2] != null ? medidor(e[2], ZONAS_PCT, { aria: `${num(e[2])} por ciento de lo normal`, textos: ["Seco", "Normal", "Lluvioso"] }) : ""}`, pieTxt));
+  }
+  const det = `<p class="detalle">En ${nom} hiela en ${f.prob_helada} de cada 100 años.</p>${calendarioHeladas(c.meses, f.mes)}`;
+  if (f.heladas == null) out.push(tarjeta("gris", ICONO.helada, `Heladas en ${nom}`, "Sin datos aún", det, pieTxt));
+  else out.push(tarjeta(f.heladas > 0 ? (f.prob_helada < 20 ? "rojo" : "amarillo") : "verde", ICONO.helada, `Heladas en ${nom} ${f.anio}`,
+    f.heladas === 0 ? "No heló" : `Heló ${f.heladas} ${f.heladas === 1 ? "día" : "días"}`, det, pieTxt));
+  if (f.tmax == null || f.tmin == null) out.push(tarjeta("gris", ICONO.calor, `Temperatura en ${nom}`, "Sin datos aún",
+    `<p class="detalle">Normalmente: tardes de ${num(f.tmax_normal, 1)} °C y madrugadas de ${num(f.tmin_normal, 1)} °C.</p>`, pieTxt));
+  else {
+    const dif = ((f.tmax - f.tmax_normal) + (f.tmin - f.tmin_normal)) / 2;
+    const e = dif > 1 ? ["naranja", "Más caluroso de lo normal"] : dif < -1 ? ["azul", "Más fresco de lo normal"] : ["verde", "Temperatura normal"];
+    out.push(tarjeta(e[0], ICONO.calor, `Temperatura en ${nom} ${f.anio}`, e[1],
+      `<p class="detalle">Tardes de <b>${num(f.tmax, 1)} °C</b> (normal ${num(f.tmax_normal, 1)}) y madrugadas de <b>${num(f.tmin, 1)} °C</b> (normal ${num(f.tmin_normal, 1)}).</p>`, pieTxt));
+  }
+  if (f.lluvia == null || f.evaporacion == null) out.push(tarjeta("gris", ICONO.agua, `Agua para el cultivo en ${nom}`, "Sin datos aún",
+    `<p class="detalle">En un ${nom} normal un cultivo pierde ${num(f.evaporacion_normal)} mm y llueven ${num(f.lluvia_normal)} mm.</p>`, pieTxt));
+  else {
+    const e = estadoAgua(f.lluvia - f.evaporacion);
+    out.push(tarjeta(e[0], ICONO.agua, `Agua para el cultivo en ${nom} ${f.anio}`, e[1], `${cuadroAgua(f.lluvia, f.evaporacion)}<p class="detalle">${e[2]}</p>`, pieTxt));
+  }
+  return out.join("");
 }
 
 /* ---------- Resumen en una frase ---------- */
-function frase(p) {
-  const l = p.lluvia, h = p.heladas, a = p.agua, partes = [];
-  const enCurso = p.fecha_corte < `${p.anio}-10-31`;
-  if (l.acumulada_mm != null) {
-    const t = { debajo: "llovió <b>menos de lo normal</b>", normal: "llovió <b>lo normal</b>", arriba: "llovió <b>más de lo normal</b>" }[l.estado];
-    if (t) partes.push(`${t} en la temporada${enCurso ? " (hasta ahora)" : ""}: ${num(l.acumulada_mm)} mm, cuando un año normal tiene ${num(l.promedio_mm)} mm`);
+function fraseSiembra(c, mes) {
+  const ok = (c.cultivos.por_mes[mes] || []).filter((x) => x.estado === "bien").map((x) => x.nombre.toLowerCase());
+  return ok.length ? ` Es buen momento para sembrar ${lista(ok.slice(0, 4))}${ok.length > 4 ? " y otros" : ""}.` : "";
+}
+function fraseCiclo(c) {
+  const g = agregados(c), partes = [];
+  if (g.lluvia != null) {
+    const e = estadoLluvia(g.lluvia, g.lluvia_normal);
+    partes.push(`llovieron <b>${num(g.lluvia)} mm</b>${e[2] != null ? `, <b>${e[2] < 80 ? "menos de lo normal" : e[2] > 120 ? "más de lo normal" : "lo normal"}</b>` : ""} (lo normal: ${num(g.lluvia_normal)} mm)`);
   }
-  if (h.dias_helada != null) partes.push(h.dias_helada === 0 ? "<b>no heló</b>" : `<b>heló ${h.dias_helada} ${h.dias_helada === 1 ? "día" : "días"}</b>`);
-  const cuando = enCurso ? "en el último mes" : "al final de la temporada";
-  const agua = { deficit: `${cuando} <b>faltaba agua</b> para los cultivos`, justo: `${cuando} el agua <b>apenas alcanzaba</b>`,
-    suficiente: `${cuando} <b>había agua suficiente</b>` }[a.estado];
-  if (agua) partes.push(agua);
-  const texto = partes.length ? `En ${p.anio} ${lista(partes)}.` : `No hay datos suficientes para resumir ${p.anio}.`;
-  return `${texto}<small>Con datos hasta el ${fecha(p.fecha_corte, true)}.</small>`;
+  if (g.heladas != null) partes.push(g.heladas === 0 ? "<b>no heló</b>" : `<b>heló ${g.heladas} ${g.heladas === 1 ? "día" : "días"}</b>`);
+  if (g.agua_lluvia != null) {
+    const bal = g.agua_lluvia - g.agua_pierde;
+    partes.push(bal < -50 ? "<b>faltó agua</b> para los cultivos sin riego" : bal < 0 ? "el agua <b>apenas alcanzó</b>" : "<b>hubo agua suficiente</b>");
+  }
+  const meses = c.meses.filter(conDatos);
+  const alcance = !meses.length ? "" : g.faltan.length ? ` (de ${nombresMeses(meses)}; todavía no hay datos de ${lista(g.faltan.map((f) => MESES_LARGOS[f.mes - 1]))})` : "";
+  return partes.length ? `En la temporada <b>${esc(c.etiqueta)}</b>${alcance} ${lista(partes)}.`
+    : `Todavía no hay datos de la temporada ${esc(c.etiqueta)}.`;
+}
+function fraseMes(c, f) {
+  const nom = MESES_LARGOS[f.mes - 1];
+  if (!conDatos(f)) return `Todavía no hay datos de ${nom} de ${f.anio}. En un ${nom} normal llueven ${num(f.lluvia_normal)} mm y hiela en ${f.prob_helada} de cada 100 años.${fraseSiembra(c, f.mes)}`;
+  const partes = [];
+  if (f.lluvia != null) {
+    const e = estadoLluvia(f.lluvia, f.lluvia_normal);
+    partes.push(`llovieron <b>${num(f.lluvia)} mm</b>${e[2] != null ? `, <b>${e[2] < 80 ? "menos de lo normal" : e[2] > 120 ? "más de lo normal" : "lo normal"}</b>` : ""} (un ${nom} normal: ${num(f.lluvia_normal)} mm)`);
+  }
+  if (f.heladas != null) partes.push(f.heladas === 0 ? "<b>no heló</b>" : `<b>heló ${f.heladas} ${f.heladas === 1 ? "día" : "días"}</b>`);
+  if (f.tmax != null) partes.push(`las tardes llegaron a ${num(f.tmax)} °C y las madrugadas a ${num(f.tmin)} °C`);
+  return `En ${nom} de ${f.anio} ${lista(partes)}.${fraseSiembra(c, f.mes)}`;
+}
+
+/* ---------- Cultivos ---------- */
+const ESTADO_CULTIVO = { bien: ["verde", "Buen momento"], riego: ["amarillo", "Solo con riego"], riesgo: ["rojo", "Riesgo de helada"] };
+const AGUA_TXT = { temporal: "De temporal", riego: "De riego", humedad: "Con humedad residual" };
+function cultivosMes(c, f) {
+  const xs = c.cultivos.por_mes[f.mes] || [];
+  $("titulo-cultivos").textContent = `¿Qué se puede sembrar en ${MESES_LARGOS[f.mes - 1]}?`;
+  if (!xs.length) return `<div class="bloque">En ${MESES_LARGOS[f.mes - 1]} no es época de siembra de los cultivos más comunes de la región.</div>`;
+  return `<div class="cultivos">${xs.map((x) => {
+    const e = ESTADO_CULTIVO[x.estado];
+    return `<article class="cultivo ${x.estado}"><h3>${esc(x.nombre)}</h3><span class="tag ${e[0]}">${e[1]}</span>
+      <p>${esc(x.motivo)}</p>${x.nota_anio ? `<p class="nota">${esc(x.nota_anio)}</p>` : ""}
+      <p class="meta">${AGUA_TXT[x.agua]} · se siembra de ${esc(x.epoca)}</p></article>`;
+  }).join("")}</div>`;
+}
+function cultivosCiclo(c) {
+  $("titulo-cultivos").textContent = `¿Qué se puede sembrar en ${c.nombre}?`;
+  const filas = c.cultivos.calendario.map((x) => `<tr><td>${esc(x.nombre)}</td>${c.meses.map((f) => {
+    const e = x.meses[f.mes];
+    return `<td class="m ${e || ""}" title="${e ? `${MESES_LARGOS[f.mes - 1]}: ${ESTADO_CULTIVO[e][1]}` : ""}"></td>`;
+  }).join("")}</tr>`).join("");
+  return `<div class="calendario"><table><thead><tr><th></th>${c.meses.map((f) => `<th>${MESES[f.mes - 1]}</th>`).join("")}</tr></thead>
+    <tbody>${filas}</tbody></table>
+    <div class="leyenda"><span><i style="background:#42be65"></i>Buen momento</span><span><i style="background:#f1c21b"></i>Solo con riego</span>
+    <span><i style="background:#fa4d56"></i>Riesgo de helada</span><span>Elija un mes arriba para ver el detalle.</span></div></div>`;
 }
 
 /* ---------- Gráficas ---------- */
@@ -312,124 +451,146 @@ const eje = (t, extra) => ({ title: { text: t, font: { size: 13 } }, gridcolor: 
 function mayor(arr) { let k = -1; arr.forEach((v, i) => { if (v != null && (k < 0 || v > arr[k])) k = i; }); return k; }
 function menor(arr) { let k = -1; arr.forEach((v, i) => { if (v != null && (k < 0 || v < arr[k])) k = i; }); return k; }
 
-function graficas(p) {
-  const m = p.tablero.mensual, t = p.tablero.lluvia_temporada;
-  const rayas = m.pct_medido.map((v) => v != null && v < 90 ? "/" : "");
+function graficas(c, mes) {
+  const fs = c.meses, x = fs.map((f) => f.etiqueta), col = (k) => fs.map((f) => f[k]);
+  const idx = fs.findIndex((f) => f.mes === mes);
+  const shapes = idx >= 0 ? [{ type: "rect", xref: "x", yref: "paper", x0: idx - 0.5, x1: idx + 0.5, y0: 0, y1: 1,
+    fillcolor: "rgba(15,98,254,.08)", line: { color: "#0f62fe", width: 1, dash: "dot" }, layer: "below" }] : [];
+  const sel = idx >= 0 ? ` <b>${Mayus(MESES_LARGOS[mes - 1])}</b> está marcado en la gráfica.` : "";
+  const nomMes = (i) => `${MESES_LARGOS[fs[i].mes - 1]} ${fs[i].anio}`;
 
-  // 1. Lluvia por mes
-  const k = mayor(m.lluvia);
-  $("r-lluvia-mes").innerHTML = k < 0 ? "No hay meses completos con datos de lluvia." :
-    `El mes con más lluvia fue <b>${MESES_LARGOS[k]}</b>, con ${num(m.lluvia[k])} mm (en un año normal ${MESES_LARGOS[k]} tiene ${num(m.lluvia_normal[k])} mm).`;
+  const ll = col("lluvia"), lln = col("lluvia_normal");
+  const k = mayor(ll);
+  $("r-lluvia-mes").innerHTML = (k < 0 ? "Todavía no hay meses completos con datos de lluvia." :
+    `El mes con más lluvia fue <b>${nomMes(k)}</b>, con ${num(ll[k])} mm (lo normal en ${MESES_LARGOS[fs[k].mes - 1]}: ${num(lln[k])} mm).`) + sel;
   Plotly.react("g-lluvia-mes", [
-    { type: "bar", x: MESES, y: m.lluvia_normal, name: "Año normal", marker: { color: "#c6c6c6" }, hovertemplate: "Año normal: %{y:.0f} mm<extra></extra>" },
-    { type: "bar", x: MESES, y: m.lluvia, name: `${p.anio}`, marker: { color: "#0f62fe", pattern: { shape: rayas, fgcolor: "#fff", size: 6, fillmode: "overlay" } },
-      customdata: m.pct_medido, hovertemplate: `${p.anio}: %{y:.0f} mm<br>%{customdata} % de días medidos<extra></extra>` },
-  ], { ...BASE, barmode: "group", yaxis: eje("milímetros"), xaxis: eje("") }, CONF);
+    { type: "bar", x, y: lln, name: "Lo normal", marker: { color: "#c6c6c6" }, hovertemplate: "Lo normal: %{y:.0f} mm<extra></extra>" },
+    { type: "bar", x, y: ll, name: "Esta temporada", marker: { color: "#0f62fe", pattern: { shape: col("pct_medido").map((v) => v != null && v < 90 ? "/" : ""), fgcolor: "#fff", size: 6, fillmode: "overlay" } },
+      customdata: col("pct_medido"), hovertemplate: "%{x}: %{y:.0f} mm<br>%{customdata} % de días medidos<extra></extra>" },
+  ], { ...BASE, barmode: "group", yaxis: eje("milímetros"), xaxis: eje("", { type: "category" }), shapes }, CONF);
 
-  // 2. Lluvia acumulada de la temporada
-  const n = t.este_anio.length;
-  if (n) {
-    const i = n - 1;
-    const dif = t.este_anio[i] - t.normal[i];
-    $("r-acumulada").innerHTML = `Al ${t.fechas[i]} llevaba <b>${num(t.este_anio[i])} mm</b>; un año normal lleva ${num(t.normal[i])} mm a esa fecha ` +
-      (Math.abs(dif) < 0.1 * t.normal[i] ? "(casi igual)." : dif > 0 ? `(${num(dif)} mm más).` : `(${num(-dif)} mm menos).`);
-  } else $("r-acumulada").textContent = "Todavía no hay datos suficientes de esta temporada.";
+  // Lluvia acumulada del ciclo, mes a mes
+  let acu = 0, acuN = 0;
+  const acumulada = [], acumNormal = [];
+  fs.forEach((f) => { acuN += f.lluvia_normal || 0; acumNormal.push(Math.round(acuN));
+    if (f.lluvia != null && acumulada.length === acumNormal.length - 1) { acu += f.lluvia; acumulada.push(Math.round(acu)); } });
+  const n = acumulada.length;
+  $("r-acumulada").innerHTML = n ? `A fin de ${nomMes(n - 1)} llevaba <b>${num(acumulada[n - 1])} mm</b> en la temporada; lo normal a esa altura es ${num(acumNormal[n - 1])} mm.`
+    : "Todavía no hay meses completos con datos en esta temporada.";
   Plotly.react("g-acumulada", [
-    { x: t.fechas, y: t.rango_alto, mode: "lines", line: { width: 0 }, hoverinfo: "skip", showlegend: false },
-    { x: t.fechas, y: t.rango_bajo, mode: "lines", line: { width: 0 }, fill: "tonexty", fillcolor: "rgba(141,141,141,.22)", name: "La mayoría de los años", hoverinfo: "skip" },
-    { x: t.fechas, y: t.normal, mode: "lines", name: "Año normal", line: { color: "#6f6f6f", width: 2, dash: "dot" }, hovertemplate: "Año normal: %{y:.0f} mm<extra></extra>" },
-    { x: t.fechas.slice(0, n), y: t.este_anio, mode: "lines", name: `${p.anio}`, line: { color: "#0f62fe", width: 4 }, hovertemplate: `%{x}: %{y:.0f} mm<extra>${p.anio}</extra>` },
-  ], { ...BASE, yaxis: eje("milímetros acumulados"), xaxis: eje("", { nticks: 6 }) }, CONF);
+    { x, y: acumNormal, mode: "lines+markers", name: "Lo normal", line: { color: "#6f6f6f", width: 2, dash: "dot" }, hovertemplate: "Lo normal: %{y:.0f} mm<extra></extra>" },
+    { x: x.slice(0, n), y: acumulada, mode: "lines+markers", name: "Esta temporada", line: { color: "#0f62fe", width: 4 }, hovertemplate: "%{x}: %{y:.0f} mm<extra>Esta temporada</extra>" },
+  ], { ...BASE, yaxis: eje("milímetros acumulados"), xaxis: eje("", { type: "category" }), shapes }, CONF);
 
-  // 3. Temperaturas
-  const fr = menor(m.tmin), ca = mayor(m.tmax);
-  $("r-temperatura").innerHTML = fr < 0 ? "No hay meses completos con datos de temperatura." :
-    `Las noches más frías fueron en <b>${MESES_LARGOS[fr]}</b> (${num(m.tmin[fr], 1)} °C en promedio) y las tardes más calientes en <b>${MESES_LARGOS[ca]}</b> (${num(m.tmax[ca], 1)} °C).`;
+  const tn = col("tmin"), tx = col("tmax");
+  const fr = menor(tn), ca = mayor(tx);
+  $("r-temperatura").innerHTML = (fr < 0 ? "Todavía no hay meses completos con datos de temperatura." :
+    `Las noches más frías fueron en <b>${nomMes(fr)}</b> (${num(tn[fr], 1)} °C en promedio) y las tardes más calientes en <b>${nomMes(ca)}</b> (${num(tx[ca], 1)} °C).`) + sel;
   Plotly.react("g-temperatura", [
-    { x: MESES, y: m.tmax_normal, mode: "lines", name: "Tarde, año normal", line: { color: "#ff8389", width: 2, dash: "dot" }, hovertemplate: "Normal: %{y:.1f} °C<extra></extra>" },
-    { x: MESES, y: m.tmax, mode: "lines+markers", name: "Tarde (máxima)", line: { color: "#da1e28", width: 3 }, hovertemplate: "%{y:.1f} °C<extra>Tarde</extra>" },
-    { x: MESES, y: m.tmin_normal, mode: "lines", name: "Madrugada, año normal", line: { color: "#78a9ff", width: 2, dash: "dot" }, hovertemplate: "Normal: %{y:.1f} °C<extra></extra>" },
-    { x: MESES, y: m.tmin, mode: "lines+markers", name: "Madrugada (mínima)", line: { color: "#0043ce", width: 3 }, hovertemplate: "%{y:.1f} °C<extra>Madrugada</extra>" },
-  ], { ...BASE, yaxis: eje("grados °C"), xaxis: eje(""), legend: { orientation: "h", y: -0.25, font: { size: 12 } },
-    shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: "#8d8d8d", width: 1 } }] }, CONF);
+    { x, y: col("tmax_normal"), mode: "lines", name: "Tarde, lo normal", line: { color: "#ff8389", width: 2, dash: "dot" }, hovertemplate: "Normal: %{y:.1f} °C<extra></extra>" },
+    { x, y: tx, mode: "lines+markers", name: "Tarde (máxima)", line: { color: "#da1e28", width: 3 }, hovertemplate: "%{y:.1f} °C<extra>Tarde</extra>" },
+    { x, y: col("tmin_normal"), mode: "lines", name: "Madrugada, lo normal", line: { color: "#78a9ff", width: 2, dash: "dot" }, hovertemplate: "Normal: %{y:.1f} °C<extra></extra>" },
+    { x, y: tn, mode: "lines+markers", name: "Madrugada (mínima)", line: { color: "#0043ce", width: 3 }, hovertemplate: "%{y:.1f} °C<extra>Madrugada</extra>" },
+  ], { ...BASE, yaxis: eje("grados °C"), xaxis: eje("", { type: "category" }), legend: { orientation: "h", y: -0.25, font: { size: 12 } },
+    shapes: [...shapes, { type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: "#8d8d8d", width: 1 } }] }, CONF);
 
-  // 4. Riesgo de helada por mes
-  const conRiesgo = m.prob_helada.map((v, i) => v >= 20 ? MESES_LARGOS[i] : null).filter(Boolean);
-  const algo = m.prob_helada.some((v) => v > 0);
-  $("r-helada").innerHTML = !algo ? "En esta estación casi nunca hiela." : conRiesgo.length ?
-    `Hiela sobre todo en <b>${lista(conRiesgo)}</b>. En los demás meses es raro o no pasa.` :
-    `Las heladas son poco comunes: en ningún mes pasan en más de 1 de cada 5 años.`;
-  const colHel = m.prob_helada.map((v) => v >= 50 ? "#da1e28" : v >= 20 ? "#ff832b" : v > 0 ? "#f1c21b" : "#e0e0e0");
-  const txtHel = m.prob_helada.map((v) => v >= 50 ? "Alto" : v >= 20 ? "Medio" : v > 0 ? "Bajo" : "");
+  const ph = col("prob_helada");
+  const conRiesgo = fs.filter((f) => f.prob_helada >= 20).map((f) => MESES_LARGOS[f.mes - 1]);
+  $("r-helada").innerHTML = (!ph.some((v) => v > 0) ? "En estos meses casi nunca hiela." : conRiesgo.length ?
+    `En esta temporada hiela sobre todo en <b>${lista(conRiesgo)}</b>.` : "Las heladas son poco comunes en estos meses: pasan en menos de 1 de cada 5 años.") + sel;
   Plotly.react("g-helada", [
-    { type: "bar", x: MESES, y: m.prob_helada, marker: { color: colHel }, text: txtHel, textposition: "outside",
+    { type: "bar", x: fs.map((f) => MESES[f.mes - 1]), y: ph, marker: { color: ph.map((v) => v >= 50 ? "#da1e28" : v >= 20 ? "#ff832b" : v > 0 ? "#f1c21b" : "#e0e0e0") },
+      text: ph.map((v) => v >= 50 ? "Alto" : v >= 20 ? "Medio" : v > 0 ? "Bajo" : ""), textposition: "outside",
       hovertemplate: "%{x}: hiela en %{y} de cada 100 años<extra></extra>", showlegend: false },
-  ], { ...BASE, yaxis: eje("años de cada 100", { range: [0, 110] }), xaxis: eje("") }, CONF);
+  ], { ...BASE, yaxis: eje("años de cada 100", { range: [0, 110] }), xaxis: eje("", { type: "category" }), shapes }, CONF);
 
-  // 5. Agua: lluvia vs agua que pierde el cultivo
-  const falta = m.lluvia.map((v, i) => v != null && m.evaporacion[i] != null && m.evaporacion[i] > v ? MESES_LARGOS[i] : null).filter(Boolean);
-  $("r-agua").innerHTML = m.lluvia.every((v) => v == null) ? "No hay datos suficientes." :
-    falta.length === 0 ? "En todos los meses llovió más de lo que el cultivo pierde." :
-    `Faltó agua en <b>${falta.length} ${falta.length === 1 ? "mes" : "meses"}</b>${falta.length <= 6 ? `: ${lista(falta)}` : ""}. Ahí un cultivo necesita riego.`;
+  const ev = col("evaporacion");
+  const falta = fs.filter((f) => f.lluvia != null && f.evaporacion != null && f.evaporacion > f.lluvia).map((f) => MESES_LARGOS[f.mes - 1]);
+  $("r-agua").innerHTML = (ll.every((v) => v == null) ? "Todavía no hay meses completos con datos." : !falta.length ? "En todos los meses llovió más de lo que el cultivo pierde." :
+    `Faltó agua en <b>${falta.length} ${falta.length === 1 ? "mes" : "meses"}</b>: ${lista(falta)}. Ahí un cultivo sin riego sufre.`) + sel;
   Plotly.react("g-agua", [
-    { type: "bar", x: MESES, y: m.lluvia, name: "Lluvia", marker: { color: "#0f62fe" }, hovertemplate: "Lluvia: %{y:.0f} mm<extra></extra>" },
-    { type: "bar", x: MESES, y: m.evaporacion, name: "Lo que pierde el cultivo", marker: { color: "#ff832b" }, hovertemplate: "Pierde: %{y:.0f} mm<extra></extra>" },
-  ], { ...BASE, barmode: "group", yaxis: eje("milímetros"), xaxis: eje("") }, CONF);
+    { type: "bar", x, y: ll, name: "Lluvia", marker: { color: "#0f62fe" }, hovertemplate: "Lluvia: %{y:.0f} mm<extra></extra>" },
+    { type: "bar", x, y: ev, name: "Lo que pierde el cultivo", marker: { color: "#ff832b" }, hovertemplate: "Pierde: %{y:.0f} mm<extra></extra>" },
+  ], { ...BASE, barmode: "group", yaxis: eje("milímetros"), xaxis: eje("", { type: "category" }), shapes }, CONF);
 
-  // 6. Cada año
-  const h = p.historico.filter((r) => r.lluvia_temporada_mm != null);
-  const cuenta = { debajo: 0, normal: 0, arriba: 0 };
-  h.forEach((r) => { if (cuenta[r.categoria_lluvia] != null) cuenta[r.categoria_lluvia]++; });
-  $("r-anios").innerHTML = `De ${h.length} años con datos: <b>${cuenta.debajo} secos</b>, <b>${cuenta.normal} normales</b> y <b>${cuenta.arriba} lluviosos</b>.`;
-  const colAnio = h.map((r) => ({ debajo: "#ff832b", normal: "#42be65", arriba: "#0f62fe" }[r.categoria_lluvia] || "#c6c6c6"));
-  const nomCat = { debajo: "Seco", normal: "Normal", arriba: "Lluvioso" };
+  const h = c.historico, cuenta = { debajo: 0, normal: 0, arriba: 0 };
+  h.forEach((r) => { if (cuenta[r.categoria] != null) cuenta[r.categoria]++; });
+  $("r-anios").innerHTML = h.length ? `De ${h.length} temporadas ${esc(c.nombre)} completas: <b>${cuenta.debajo} secas</b>, <b>${cuenta.normal} normales</b> y <b>${cuenta.arriba} lluviosas</b>.`
+    : "No hay ciclos completos para comparar.";
+  const colCat = { debajo: "#ff832b", normal: "#42be65", arriba: "#0f62fe" }, nomCat = { debajo: "Seco", normal: "Normal", arriba: "Lluvioso" };
   Plotly.react("g-anios", [
-    { type: "bar", x: h.map((r) => String(r.anio)), y: h.map((r) => r.lluvia_temporada_mm),
-      marker: { color: colAnio, line: { color: h.map((r) => r.anio === p.anio ? "#161616" : "rgba(0,0,0,0)"), width: 3 } },
-      customdata: h.map((r) => nomCat[r.categoria_lluvia] || ""), hovertemplate: "%{x}: %{y:.0f} mm · %{customdata}<extra></extra>", showlegend: false },
-    ...["debajo", "normal", "arriba"].map((c) => ({ type: "bar", x: [null], y: [null], name: nomCat[c],
-      marker: { color: { debajo: "#ff832b", normal: "#42be65", arriba: "#0f62fe" }[c] } })),
+    { type: "bar", x: h.map((r) => r.etiqueta), y: h.map((r) => r.lluvia),
+      marker: { color: h.map((r) => colCat[r.categoria] || "#c6c6c6"), line: { color: h.map((r) => r.actual ? "#161616" : "rgba(0,0,0,0)"), width: 3 } },
+      customdata: h.map((r) => nomCat[r.categoria] || ""), hovertemplate: "%{x}: %{y:.0f} mm · %{customdata}<extra></extra>", showlegend: false },
+    ...["debajo", "normal", "arriba"].map((k2) => ({ type: "bar", x: [null], y: [null], name: nomCat[k2], marker: { color: colCat[k2] } })),
   ], { ...BASE, yaxis: eje("milímetros"), xaxis: eje("", { type: "category", nticks: 12 }), bargap: 0.15 }, CONF);
 }
 
-function historico(p) {
-  const filas = p.historico.slice().reverse().map((r) => `<tr class="${r.anio === p.anio ? "actual" : ""}">
-    <td>${r.anio}</td><td>${num(r.lluvia_temporada_mm)}</td>
-    <td>${{ debajo: '<span class="tag naranja">Seco</span>', normal: '<span class="tag verde">Normal</span>', arriba: '<span class="tag azul">Lluvioso</span>' }[r.categoria_lluvia] || "—"}</td>
-    <td>${r.inicio_lluvias ? fecha(r.inicio_lluvias) : "—"}</td><td>${num(r.dias_helada)}</td>
-    <td>${num(r.pct_dias_medidos_lluvia)} %</td></tr>`).join("");
-  $("historico").innerHTML = `<table><thead><tr><th>Año</th><th>Lluvia jun–oct (mm)</th><th>Cómo fue</th><th>Empezaron las lluvias</th>
-    <th>Días con helada</th><th>Días medidos</th></tr></thead><tbody>${filas}</tbody></table>`;
+function historico(c) {
+  const filas = c.historico.slice().reverse().map((r) => `<tr class="${r.actual ? "actual" : ""}"><td>${esc(r.etiqueta)}</td><td>${num(r.lluvia)}</td>
+    <td>${{ debajo: '<span class="tag naranja">Seco</span>', normal: '<span class="tag verde">Normal</span>', arriba: '<span class="tag azul">Lluvioso</span>' }[r.categoria] || "—"}</td>
+    <td>${num(r.pct_promedio)} %</td></tr>`).join("");
+  $("historico").innerHTML = `<table class="datos-anios"><thead><tr><th>Ciclo ${esc(c.nombre)}</th><th>Lluvia (mm)</th><th>Cómo fue</th><th>Comparado con lo normal</th></tr></thead><tbody>${filas}</tbody></table>`;
 }
 
-function textoConfianza(p) {
-  const l = p.lluvia.pct_dias_medidos, t = p.calor.pct_dias_medidos;
-  const nivel = (x) => x == null ? "sin datos" : x >= 90 ? "alta" : x >= 70 ? "media" : "baja";
-  $("confianza-texto").innerHTML = `En ${p.anio}, la estación midió el <b>${num(l)} %</b> de los días de lluvia de la temporada (confianza <b>${nivel(l)}</b>)` +
-    (t != null ? ` y el <b>${num(t)} %</b> de los días de temperatura desde la siembra (confianza <b>${nivel(t)}</b>).` : ".");
+function textoConfianza(c) {
+  const g = agregados(c);
+  const nivel = (v) => v == null ? "sin datos" : v >= 90 ? "alta" : v >= 70 ? "media" : "baja";
+  $("confianza-texto").innerHTML = g.medido == null ? "Todavía no hay datos de esta temporada." :
+    `En la temporada ${esc(c.etiqueta)}, la estación midió el <b>${num(g.medido)} %</b> de los días (confianza <b>${nivel(g.medido)}</b>).`;
 }
 
-/* ---------- Carga ---------- */
+function textoFuente(p) {
+  const dias = Math.round((new Date() - new Date(`${p.ultimo_dato}T12:00:00`)) / 86400000);
+  $("fecha-datos").innerHTML = `📅 Datos hasta el <b>&nbsp;${fecha(p.ultimo_dato, true)}</b>`;
+  let t = "";
+  if (p.ultimo_medido && p.ultimo_medido < p.ultimo_dato)
+    t += `Esta estación midió hasta el ${fecha(p.ultimo_medido, true)}; después, sus datos se estiman con estaciones vecinas. `;
+  if (origen.tipo === "oficial") {
+    t += `Fuente: Servicio Meteorológico Nacional${origen.emision ? `, publicación del ${esc(origen.emision)}` : ""}.`;
+    if (origen.revisado) t += ` Revisamos si hay datos nuevos el ${fechaCorta(origen.revisado)}.`;
+    if (dias > 60) t += " El SMN publica sus datos con varios meses de retraso; estos son los más recientes disponibles.";
+  } else if (origen.tipo === "sintetico") t += "Datos de prueba (sintéticos), no son mediciones reales.";
+  $("fuente").textContent = t;
+}
+
+/* ---------- Carga y filtros ---------- */
 function actualizarUrl() {
   const q = new URLSearchParams({ municipio: estado.municipio });
   if (estado.estacion) q.set("estacion", estado.estacion);
-  if (estado.anio) q.set("anio", estado.anio);
-  if (estado.siembra) q.set("siembra", estado.siembra);
+  if (estado.ciclo) q.set("ciclo", estado.ciclo);
+  if (estado.inicio) q.set("inicio", estado.inicio);
+  if (estado.mes) q.set("mes", estado.mes);
+  if (typeof estadoMapa !== "undefined" && estadoMapa.capa !== "lluvia") q.set("capa", estadoMapa.capa);
   history.replaceState(null, "", `?${q}`);
 }
 function mostrarError(msg) { $("error").hidden = false; $("error").textContent = msg; }
 
-function textoFuente(p) {
-  const hoy = new Date(), ult = new Date(`${p.ultimo_dato}T12:00:00`);
-  const dias = Math.round((hoy - ult) / 86400000);
-  $("fecha-datos").innerHTML = `📅 Datos hasta el <b>&nbsp;${fecha(p.ultimo_dato, true)}</b>`;
-  let t = "";
-  if (origen.tipo === "oficial") {
-    t = `Fuente: Servicio Meteorológico Nacional${origen.emision ? `, publicación del ${esc(origen.emision)}` : ""}.`;
-    if (origen.revisado) t += ` Revisamos si hay datos nuevos el ${fechaCorta(origen.revisado)}.`;
-    if (dias > 60) t += ` El SMN publica sus datos con varios meses de retraso; estos son los más recientes disponibles.`;
-  } else if (origen.tipo === "sintetico") t = "Datos de prueba (sintéticos), no son mediciones reales.";
-  $("fuente").textContent = t;
+function pintar() {
+  const p = ultimoPanel;
+  if (!p) return;
+  const c = cicloActual(p);
+  estado.ciclo = c.clave; estado.inicio = c.inicio;
+  if (estado.mes && !c.meses.some((f) => f.mes === estado.mes)) estado.mes = 0;
+  const f = c.meses.find((x) => x.mes === estado.mes);
+  const ts = p.tablero.temporadas, primera = ts[0];
+  const opcion = (t) => `<option value="${t.ciclo}:${t.inicio}">${esc(t.etiqueta)}${t === primera ? " (la más reciente)" : t.completa ? "" : " (incompleta)"}</option>`;
+  $("ciclo").innerHTML = [["primavera_verano", "Primavera-Verano"], ["otono_invierno", "Otoño-Invierno"]].map(([k, n]) =>
+    `<optgroup label="${n}">${ts.filter((t) => t.ciclo === k).map(opcion).join("")}</optgroup>`).join("");
+  $("ciclo").value = `${c.clave}:${c.inicio}`;
+  $("mes").innerHTML = `<option value="0">Toda la temporada</option>` + c.meses.map((x) =>
+    `<option value="${x.mes}">${Mayus(MESES_LARGOS[x.mes - 1])} ${x.anio}${conDatos(x) ? "" : " (sin datos aún)"}</option>`).join("");
+  $("mes").value = String(estado.mes);
+  $("resumen").innerHTML = (f ? fraseMes(c, f) : fraseCiclo(c)) + `<small>Con datos hasta el ${fecha(p.ultimo_dato, true)}.</small>`;
+  $("titulo-indicadores").textContent = f ? `Lo más importante de ${MESES_LARGOS[f.mes - 1]} de ${f.anio}` : `Lo más importante de ${c.etiqueta}`;
+  $("indicadores").innerHTML = f ? indicadoresMes(c, f) : indicadoresCiclo(c);
+  $("cultivos").innerHTML = f ? cultivosMes(c, f) : cultivosCiclo(c);
+  $("aviso-cultivos").textContent = c.cultivos.nota + " La evaluación del clima usa los datos de la estación.";
+  graficas(c, estado.mes);
+  textoConfianza(c);
+  historico(c);
+  actualizarUrl();
+  cargarMapa();
 }
 
 async function cargar() {
@@ -437,29 +598,15 @@ async function cargar() {
   $("error").hidden = true;
   $("principal").classList.add("cargando");
   const q = new URLSearchParams();
-  if (estado.anio) q.set("anio", estado.anio);
-  if (estado.siembra) q.set("siembra", estado.siembra);
+  if (estado.ciclo && estado.inicio) { q.set("ciclo", estado.ciclo); q.set("inicio", estado.inicio); }
   try {
     const r = await fetch(`/api/v1/agro/${encodeURIComponent(estado.estacion)}?${q}`);
     const p = await r.json();
     if (id !== pedido) return;
     if (!r.ok) throw new Error(p.detail || r.statusText);
-    estado.anio = String(p.anio);
-    $("titulo").textContent = `El clima en ${p.estacion.municipio}`;
+    ultimoPanel = p;
     textoFuente(p);
-    $("anio").innerHTML = p.anios_disponibles.slice().reverse().map((a, i) => `<option value="${a}">${a}${i === 0 ? " (último)" : ""}</option>`).join("");
-    $("anio").value = p.anio;
-    $("siembra").value = estado.siembra || "";
-    $("siembra").min = `${p.anio}-03-01`; $("siembra").max = `${p.anio}-09-30`;
-    $("ayuda-siembra").textContent = estado.siembra ? "" : `Si no la pone, contamos desde el inicio de lluvias (${fecha(p.siembra.fecha)}).`;
-    $("quitar-siembra").hidden = !estado.siembra;
-    $("resumen").innerHTML = frase(p);
-    $("titulo-indicadores").textContent = `Lo más importante de ${p.anio}`;
-    $("indicadores").innerHTML = indicadorLluvia(p) + indicadorHeladas(p) + indicadorCalor(p) + indicadorAgua(p);
-    graficas(p);
-    textoConfianza(p);
-    historico(p);
-    actualizarUrl();
+    pintar();
   } catch (err) {
     if (id === pedido) mostrarError(`No se pudo cargar la información: ${err.message}`);
   } finally {
@@ -468,17 +615,18 @@ async function cargar() {
 }
 
 async function iniciar() {
-  try {
-    const s = await (await fetch("/api/v1/salud")).json();
-    origen = s.origen_datos || {};
-  } catch (e) { /* sin aviso de fuente */ }
+  try { origen = (await (await fetch("/api/v1/salud")).json()).origen_datos || {}; } catch (e) { /* sin aviso de fuente */ }
   try {
     const r = await fetch(`/api/v1/agro/estaciones?municipio=${encodeURIComponent(estado.municipio)}`);
     const j = await r.json();
     if (!r.ok) throw new Error(j.detail || r.statusText);
     $("estacion").innerHTML = j.estaciones.map((e) =>
       `<option value="${esc(e.clave)}">${esc(e.nombre)}${e.estado_operativo !== "operando" ? " (suspendida)" : ""}</option>`).join("");
-    if (!estado.estacion || !j.estaciones.some((e) => e.clave === estado.estacion)) estado.estacion = j.estaciones[0].clave;
+    if (!estado.estacion || !j.estaciones.some((e) => e.clave === estado.estacion)) {
+      // Por defecto, la estación que lleva el nombre del municipio (suele ser la principal)
+      const principal = j.estaciones.find((e) => e.nombre.toLowerCase().startsWith(estado.municipio.toLowerCase()) && e.estado_operativo === "operando");
+      estado.estacion = (principal || j.estaciones[0]).clave;
+    }
     $("estacion").value = estado.estacion;
     $("estacion").disabled = j.estaciones.length < 2;
     await cargar();
@@ -488,10 +636,140 @@ async function iniciar() {
   }
 }
 
-$("estacion").addEventListener("change", (e) => { estado.estacion = e.target.value; estado.anio = null; cargar(); });
-$("anio").addEventListener("change", (e) => { estado.anio = e.target.value; estado.siembra = null; cargar(); });
-$("siembra").addEventListener("change", (e) => { estado.siembra = e.target.value || null; cargar(); });
-$("quitar-siembra").addEventListener("click", () => { estado.siembra = null; cargar(); });
+$("estacion").addEventListener("change", (e) => { estado.estacion = e.target.value; estado.ciclo = null; estado.inicio = null; estado.mes = 0; cargar(); });
+$("ciclo").addEventListener("change", (e) => {
+  const [ciclo, inicio] = e.target.value.split(":");
+  estado.ciclo = ciclo; estado.inicio = parseInt(inicio); estado.mes = 0; cargar();
+});
+$("mes").addEventListener("change", (e) => { estado.mes = parseInt(e.target.value) || 0; pintar(); });
+
+/* ---------- Mapa del estado ---------- */
+const CAPAS = {
+  lluvia: { boton: "¿Dónde llovió?", titulo: "Lluvia comparada con lo normal", unidad: "% de lo normal",
+    escala: [[60, "#8c510a", "Muy seco"], [80, "#d8b365", "Seco"], [120, "#a6d96a", "Normal"], [150, "#67a9cf", "Lluvioso"], [Infinity, "#2166ac", "Muy lluvioso"]] },
+  calor: { boton: "¿Dónde hizo calor?", titulo: "Temperatura de la tarde comparada con lo normal", unidad: "°C de diferencia",
+    escala: [[-2, "#2166ac", "Mucho más fresco"], [-1, "#67a9cf", "Más fresco"], [1, "#ffffbf", "Normal"], [2, "#ef8a62", "Más caluroso"], [Infinity, "#b2182b", "Mucho más caluroso"]] },
+  heladas: { boton: "¿Dónde heló?", titulo: "Días con helada", unidad: "días",
+    escala: [[0.5, "#f7fbff", "No heló"], [2.5, "#c6dbef", "1 a 2 días"], [5.5, "#6baed6", "3 a 5 días"], [10.5, "#2171b5", "6 a 10 días"], [Infinity, "#54278f", "Más de 10 días"]] },
+  agua: { boton: "¿Dónde faltó agua?", titulo: "Lluvia menos el agua que pierde el cultivo", unidad: "mm",
+    escala: [[-150, "#b2182b", "Falta mucha agua"], [-50, "#ef8a62", "Falta agua"], [0, "#fee090", "Agua justa"], [100, "#a6d96a", "Alcanza"], [Infinity, "#1a9641", "Sobra"]] },
+};
+const estadoMapa = { capa: CAPAS[params.get("capa")] ? params.get("capa") : "lluvia", datos: null, llave: null, mapa: null, fondo: null, puntos: null, ajustado: false };
+const cacheMapa = {};
+const categoria = (capa, v) => v == null ? null : CAPAS[capa].escala.find(([hasta]) => v < hasta);
+function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
+
+function botonesCapas() {
+  $("capas").innerHTML = Object.entries(CAPAS).map(([k, c]) =>
+    `<button type="button" role="tab" aria-selected="${k === estadoMapa.capa}" data-capa="${k}">${ICONO[{ lluvia: "lluvia", calor: "calor", heladas: "helada", agua: "agua" }[k]]}${c.boton}</button>`).join("");
+  $("capas").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { estadoMapa.capa = b.dataset.capa; botonesCapas(); dibujarMapa(); actualizarUrl(); }));
+}
+
+async function cargarMapa() {
+  const q = new URLSearchParams();
+  if (estado.ciclo && estado.inicio) { q.set("ciclo", estado.ciclo); q.set("inicio", estado.inicio); }
+  if (estado.mes) q.set("mes", estado.mes);
+  const llave = q.toString();
+  if (estadoMapa.llave === llave && estadoMapa.datos) return dibujarMapa();
+  estadoMapa.llave = llave;
+  try {
+    if (!cacheMapa[llave]) {
+      const r = await fetch(`/api/v1/agro/mapa?${llave}`);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.detail || r.statusText);
+      cacheMapa[llave] = j;
+    }
+    if (estadoMapa.llave !== llave) return;
+    estadoMapa.datos = cacheMapa[llave];
+    dibujarMapa();
+  } catch (err) {
+    $("r-mapa").textContent = `No se pudo cargar el mapa: ${err.message}`;
+  }
+}
+
+function imagenCapa(g, capa) {
+  const cv = document.createElement("canvas");
+  cv.width = g.columnas; cv.height = g.filas;
+  const ctx = cv.getContext("2d"), img = ctx.createImageData(g.columnas, g.filas);
+  g.valores.forEach((v, i) => {
+    const cat = categoria(capa, v);
+    if (!cat) return;
+    const [r, gg, b] = hexRgb(cat[1]);
+    img.data.set([r, gg, b, Math.round(255 * (0.3 + 0.45 * (g.cercania[i] ?? 0)))], i * 4);
+  });
+  ctx.putImageData(img, 0, 0);
+  return cv.toDataURL();
+}
+
+function fraseEstacion(e, capa) {
+  if (e.capas[capa] == null) return "Sin datos completos para esta temporada.";
+  if (capa === "lluvia") return `Llovió ${num(e.lluvia)} mm: ${num(e.capas.lluvia)} % de lo normal (${num(e.lluvia_normal)} mm).`;
+  if (capa === "calor") return `Tardes de ${num(e.tmax, 1)} °C; lo normal es ${num(e.tmax_normal, 1)} °C (${e.capas.calor > 0 ? "+" : ""}${num(e.capas.calor, 1)} °C).`;
+  if (capa === "heladas") return `${e.heladas === 0 ? "No heló" : `Heló ${e.heladas} ${e.heladas === 1 ? "día" : "días"}`} (lo normal: ${num(e.heladas_normal, 1)}).`;
+  return `Llovió ${num(e.lluvia)} mm y el cultivo perdió ${num(e.evaporacion)} mm: ${categoria("agua", e.capas.agua)[2].toLowerCase()}.`;
+}
+
+function respuestaMapa(d, capa) {
+  const con = d.estaciones.filter((e) => e.capas[capa] != null);
+  const t = d.temporada, periodo = t.mes ? `${MESES_LARGOS[t.mes - 1]} de ${t.meses[0].anio}` : `la temporada ${t.etiqueta}`;
+  const faltan = !t.mes && t.meses_sin_datos.length ? ` (sin ${lista(t.meses_sin_datos.map((m) => MESES_LARGOS[m.mes - 1]))}, que aún no tienen datos)` : "";
+  if (!con.length) return `Todavía no hay datos de ${periodo} para el mapa.`;
+  const cuenta = {};
+  con.forEach((e) => { const c = categoria(capa, e.capas[capa])[2]; cuenta[c] = (cuenta[c] || 0) + 1; });
+  const [masComun, n] = Object.entries(cuenta).sort((a, b) => b[1] - a[1])[0];
+  const ord = con.slice().sort((a, b) => a.capas[capa] - b.capas[capa]);
+  const lo = ord[0], hi = ord[ord.length - 1];
+  const ext = {
+    lluvia: ` La menor lluvia fue en ${esc(lo.municipio)} (${num(lo.capas.lluvia)} % de lo normal) y la mayor en ${esc(hi.municipio)} (${num(hi.capas.lluvia)} %).`,
+    calor: ` Lo más caluroso respecto a lo normal fue ${esc(hi.municipio)} (${hi.capas.calor > 0 ? "+" : ""}${num(hi.capas.calor, 1)} °C).`,
+    heladas: hi.capas.heladas ? ` Donde más heló fue ${esc(hi.municipio)}: ${hi.capas.heladas} ${hi.capas.heladas === 1 ? "día" : "días"}.` : " No heló en ninguna estación.",
+    agua: ` Donde más faltó agua fue ${esc(lo.municipio)} (${num(lo.capas.agua)} mm).`,
+  }[capa];
+  return `En ${periodo}${faltan}: <b>${masComun.toLowerCase()}</b> en ${n} de ${con.length} estaciones.${ext}`;
+}
+
+function dibujarMapa() {
+  const d = estadoMapa.datos, capa = estadoMapa.capa, def = CAPAS[capa];
+  if (!d || typeof L === "undefined") return;
+  if (!estadoMapa.mapa) {
+    estadoMapa.mapa = L.map("mapa", { scrollWheelZoom: false, zoomSnap: 0.25 });
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 13, attribution: "&copy; OpenStreetMap" }).addTo(estadoMapa.mapa);
+  }
+  const m = estadoMapa.mapa, g = d.capas[capa];
+  if (estadoMapa.fondo) estadoMapa.fondo.remove();
+  if (estadoMapa.puntos) estadoMapa.puntos.remove();
+  estadoMapa.fondo = L.imageOverlay(imagenCapa(g, capa), [[g.sur, g.oeste], [g.norte, g.este]], { opacity: 1, interactive: false }).addTo(m);
+  estadoMapa.puntos = L.layerGroup(d.estaciones.map((e) => {
+    const cat = categoria(capa, e.capas[capa]), sel = e.clave === estado.estacion;
+    return L.circleMarker([e.latitud, e.longitud], { radius: sel ? 9 : cat ? 6 : 3, weight: sel ? 3 : cat ? 1.5 : 1,
+      color: sel ? "#161616" : cat ? "#ffffff" : "#8d8d8d", fillColor: cat ? cat[1] : "#c6c6c6", fillOpacity: cat || sel ? 1 : 0.6 })
+      .bindTooltip(`<b>${esc(e.nombre)}</b><br>${esc(fraseEstacion(e, capa))}`)
+      .bindPopup(`<b>${esc(e.nombre)}</b> · ${esc(e.municipio)}<br>${esc(fraseEstacion(e, capa))}<br>
+        <small>${e.pct_medido != null ? `${e.pct_medido} % de días medidos` : ""}</small><br>
+        <button type="button" class="ver-estacion" data-clave="${esc(e.clave)}" data-municipio="${esc(e.municipio)}">Ver esta estación</button>`);
+  })).addTo(m);
+  if (!estadoMapa.ajustado) {
+    m.fitBounds(d.estaciones.map((e) => [e.latitud, e.longitud]), { padding: [16, 16] });
+    estadoMapa.ajustado = true;
+    setTimeout(() => m.invalidateSize(), 100);
+  }
+  $("titulo-capa").textContent = def.titulo;
+  $("r-mapa").innerHTML = respuestaMapa(d, capa);
+  $("leyenda-mapa").innerHTML = def.escala.map(([, color, txt]) => `<span><i style="background:${color}"></i>${txt}</span>`).join("") +
+    `<span><i style="background:#c6c6c6;border-radius:50%;width:8px;height:8px"></i>Estación sin datos de esta temporada</span>`;
+  $("nota-mapa").textContent = d.nota + " El relieve no se considera entre estaciones.";
+}
+
+document.addEventListener("click", (e) => {
+  const b = e.target.closest(".ver-estacion");
+  if (!b) return;
+  estado.estacion = b.dataset.clave;
+  estado.municipio = b.dataset.municipio;
+  estadoMapa.mapa.closePopup();
+  iniciar();
+  document.querySelector(".resumen").scrollIntoView({ behavior: "smooth" });
+});
+botonesCapas();
 iniciar();
 </script>
 </body>

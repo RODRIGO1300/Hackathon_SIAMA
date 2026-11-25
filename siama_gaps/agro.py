@@ -18,6 +18,8 @@ from datetime import date, timedelta
 import numpy as np
 import pandas as pd
 
+from . import cultivos
+
 BASE_GDD, TOPE_GDD = 10.0, 30.0
 UMBRAL_HELADA = 0.0
 UMBRAL_CALOR = 35.0
@@ -274,6 +276,127 @@ def lluvia_acumulada_temporada(d, anio, anios_otros, corte):
     }
 
 
+# --- ciclos agrícolas (Primavera-Verano y Otoño-Invierno) ----------------------------------------------
+def _tabla_mensual(d):
+    """Lluvia, temperaturas, evaporación del cultivo y heladas por año y mes. Mes incompleto (> 5 % sin dato) = NaN."""
+    x = d.copy()
+    x["mes"] = x.index.month
+    x["es_helada"] = (x["tmin"] <= UMBRAL_HELADA).astype(float)
+    g = x.groupby(["anio", "mes"]).agg(
+        lluvia=("precipitacion", "sum"), n_lluvia=("precipitacion", "count"),
+        tmax=("tmax", "mean"), tmin=("tmin", "mean"), n_t=("tmin", "count"), n_tx=("tmax", "count"),
+        et0=("et0", "sum"), heladas=("es_helada", "sum"),
+        medidos=("med_precipitacion", "mean"))
+    dias = np.array([pd.Period(f"{a}-{m:02d}").days_in_month for a, m in g.index])
+    ok_ll = g["n_lluvia"].to_numpy() >= (1 - MAX_FALTANTE) * dias
+    ok_t = np.minimum(g["n_t"], g["n_tx"]).to_numpy() >= (1 - MAX_FALTANTE) * dias
+    g.loc[~ok_ll, ["lluvia", "et0"]] = np.nan
+    g.loc[~ok_t, ["tmax", "tmin", "heladas"]] = np.nan
+    g.loc[~(ok_ll | ok_t), "medidos"] = np.nan
+    return g
+
+
+def _ciclo_celdas(clave, y0):
+    meses = cultivos.CICLOS[clave]["meses"]
+    return [(y0 if (clave == "primavera_verano" or m >= 10) else y0 + 1, m) for m in meses]
+
+
+def _anio_inicio_reciente(clave, ultimo):
+    inicio = cultivos.CICLOS[clave]["meses"][0]
+    return ultimo.year if ultimo.month >= inicio else ultimo.year - 1
+
+
+def _etiqueta_ciclo(clave, y0, corta=False):
+    nombre = cultivos.CICLOS[clave]["nombre"]
+    anios = str(y0) if clave == "primavera_verano" else f"{y0}-{str(y0 + 1)[-2:] if corta else y0 + 1}"
+    return anios if corta else f"{nombre} {anios}"
+
+
+def ciclos_agricolas(d, ultimo, ciclo=None, inicio=None):
+    """Todas las temporadas (Primavera-Verano y Otoño-Invierno) con datos en los registros y, para la elegida
+    (por defecto la más reciente), sus meses contra lo normal, el histórico de su tipo y los cultivos de cada mes."""
+    g = _tabla_mensual(d[d.index <= ultimo])
+
+    def serie_mes(col, m):
+        try:
+            return g.xs(m, level="mes")[col].dropna()
+        except KeyError:
+            return pd.Series(dtype=float)
+
+    def normal(col, m, excluir=None):
+        v = serie_mes(col, m)
+        v = v[v.index != excluir] if excluir is not None else v
+        return float(v.mean()) if len(v) else None
+
+    prob_helada = [round(100 * float((serie_mes("heladas", m) > 0).mean())) if len(serie_mes("heladas", m)) else 0
+                   for m in range(1, 13)]
+    lluvia_normal = [normal("lluvia", m) for m in range(1, 13)]
+
+    def valor(a, m, col):
+        if (a, m) not in g.index:
+            return None
+        v = g.loc[(a, m), col]
+        return None if pd.isna(v) else float(v)
+
+    def r(x, n=1):
+        return None if x is None else round(x, n)
+
+    # Temporadas disponibles: las que tienen al menos un mes con datos
+    anios = sorted(int(a) for a in g.index.get_level_values("anio").unique())
+    disponibles = []
+    for clave in cultivos.CICLOS:
+        for ys in range(anios[0] - 1, anios[-1] + 1):
+            celdas = _ciclo_celdas(clave, ys)
+            con = [valor(a, m, "lluvia") is not None or valor(a, m, "tmin") is not None for a, m in celdas]
+            if any(con):
+                ultimo_con = max(c for c, ok in zip(celdas, con) if ok)
+                disponibles.append({"ciclo": clave, "inicio": ys, "etiqueta": _etiqueta_ciclo(clave, ys),
+                                    "completa": all(con), "_orden": ultimo_con})
+    if not disponibles:
+        raise ValueError("No hay temporadas con datos")
+    disponibles.sort(key=lambda t: (t["_orden"], t["ciclo"] == "otono_invierno"), reverse=True)
+    for t in disponibles:
+        t.pop("_orden")
+    elegida = next((t for t in disponibles if t["ciclo"] == ciclo and t["inicio"] == inicio), None) or disponibles[0]
+    clave, y0 = elegida["ciclo"], elegida["inicio"]
+
+    filas = []
+    for a, m in _ciclo_celdas(clave, y0):
+        filas.append({
+            "anio": int(a), "mes": m, "etiqueta": f"{MESES[m - 1]} {a}",
+            "lluvia": r(valor(a, m, "lluvia")), "lluvia_normal": r(normal("lluvia", m, a)),
+            "tmax": r(valor(a, m, "tmax")), "tmax_normal": r(normal("tmax", m, a)),
+            "tmin": r(valor(a, m, "tmin")), "tmin_normal": r(normal("tmin", m, a)),
+            "evaporacion": r(valor(a, m, "et0")), "evaporacion_normal": r(normal("et0", m, a)),
+            "heladas": r(valor(a, m, "heladas"), 0), "heladas_normal": r(normal("heladas", m, a)),
+            "prob_helada": prob_helada[m - 1],
+            "pct_medido": r(100 * valor(a, m, "medidos"), 0) if valor(a, m, "medidos") is not None else None,
+        })
+    historico = []
+    for ys in anios:
+        vals = [valor(a, m, "lluvia") for a, m in _ciclo_celdas(clave, ys)]
+        if all(v is not None for v in vals):
+            historico.append({"anio_inicio": ys, "etiqueta": _etiqueta_ciclo(clave, ys, corta=True),
+                              "lluvia": round(sum(vals), 1)})
+    if historico:
+        prom = float(np.mean([h["lluvia"] for h in historico]))
+        for h in historico:
+            h["pct_promedio"] = round(100 * h["lluvia"] / prom) if prom else None
+            h["categoria"] = _estado_lluvia(h["pct_promedio"])
+            h["actual"] = h["anio_inicio"] == y0
+    lluvia_ciclo = {f["mes"]: f["lluvia"] for f in filas}
+    normal_ciclo = list(lluvia_normal)  # mismo "lo normal" que se muestra en las tarjetas del mes
+    for f in filas:
+        normal_ciclo[f["mes"] - 1] = f["lluvia_normal"]
+    return {
+        "temporadas": disponibles,
+        "temporada": {"clave": clave, "inicio": y0, "nombre": cultivos.CICLOS[clave]["nombre"],
+                      "etiqueta": _etiqueta_ciclo(clave, y0), "mas_reciente": elegida is disponibles[0],
+                      "meses": filas, "historico": historico,
+                      "cultivos": cultivos.para_ciclo(clave, prob_helada, normal_ciclo, lluvia_ciclo)},
+    }
+
+
 # --- panel para la interfaz -------------------------------------------------------------------------------
 def _estado_lluvia(pct):
     if pct is None:
@@ -281,7 +404,7 @@ def _estado_lluvia(pct):
     return "debajo" if pct < 80 else "arriba" if pct > 120 else "normal"
 
 
-def panel(serie_estacion, lat, anio=None, siembra=None, hasta=None):
+def panel(serie_estacion, lat, anio=None, siembra=None, hasta=None, temporada=None, inicio=None):
     """Todo lo que necesita la vista del productor para una estación y una temporada."""
     d = tabla_diaria(serie_estacion, lat)
     completos = d[["precipitacion", "tmax", "tmin"]].notna().all(axis=1)
@@ -382,6 +505,8 @@ def panel(serie_estacion, lat, anio=None, siembra=None, hasta=None):
     return {
         "anio": anio, "anios_disponibles": anios, "periodo_promedio": periodo, "fecha_corte": _fmt(corte),
         "ultimo_dato": _fmt(ultimo),
+        "ultimo_medido": _fmt(d.index[d["med_precipitacion"] | d["med_tmin"]].max()
+                              if (d["med_precipitacion"] | d["med_tmin"]).any() else None),
         "siembra": {"fecha": _fmt(f_siembra), "origen": origen_siembra},
         "lluvia": {
             "acumulada_mm": r1(lluvia), "promedio_mm": r1(lluvia_prom), "anios_promedio": n_lluvia,
@@ -435,8 +560,9 @@ def panel(serie_estacion, lat, anio=None, siembra=None, hasta=None):
         "historico": [{k: (None if isinstance(v, float) and np.isnan(v) else v) for k, v in r.items()
                        if not k.endswith("_doy")} | _categoria_anio(r, hist) for r in historico],
         "tablero": {
-            "mensual": tablero_mensual(d, anio, anios_otros, corte),
+            "mensual": (mensual := tablero_mensual(d, anio, anios_otros, corte)),
             "lluvia_temporada": lluvia_acumulada_temporada(d, anio, anios_otros, corte),
+            **ciclos_agricolas(d, ultimo, temporada, inicio),
         },
     }
 

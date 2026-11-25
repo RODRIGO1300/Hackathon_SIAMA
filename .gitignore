@@ -6,3 +6,5 @@ salidas/
 .env
 *.crt
 salidas_*/
+datos_guanajuato/originales/
+datos_guanajuato/series_diarias.csv

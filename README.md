@@ -51,6 +51,7 @@ $env:SIAMA_SALIDAS = "salidas_salamanca"; uvicorn api.main:app --reload    # la 
 
 Luego abre http://localhost:8000/agro: un tablero pensado para productores, con una frase de resumen, cuatro
 indicadores tipo semáforo y gráficas que responden preguntas («¿Cuánto llovió cada mes?», «¿En qué meses puede helar?»).
+Tiene dos filtros: **Temporada** (ciclo agrícola: Primavera-Verano, siembras de marzo a septiembre, u Otoño-Invierno, de octubre a febrero; siempre el ciclo más reciente) y **Mes**. Con un mes elegido muestra ese mes contra un mes normal y «¿Qué se puede sembrar?»: los cultivos de esa época según un calendario de referencia del Bajío (`siama_gaps/cultivos.py`), evaluados con el riesgo de helada y la lluvia de la estación.
 Siempre abre en el año y la fecha más recientes disponibles.
 
 **Mantener los datos al día.** El comando `actualizar` descarga del SMN los archivos más recientes de las estaciones del
@@ -75,6 +76,25 @@ Lo que se encontró en los datos reales (ver `salidas_salamanca/`):
   años (posibles cambios de instrumento o ubicación). Su correlación en anomalías (0.41–0.54) no alcanza el mínimo de
   0.60, así que **la temperatura no se rellena con la estación vecina** y los huecos de más de 3 días quedan como no
   estimables. Los indicadores agrícolas lo informan como «datos insuficientes» en vez de dar una cifra engañosa.
+
+## Mapa de Guanajuato (todas las estaciones del SMN)
+
+El paquete `datos_guanajuato/` reúne las estaciones climatológicas del SMN en Guanajuato (162 publicadas; entran las
+145 con al menos 5 años de datos desde 1981). Se descargan y procesan así:
+
+```powershell
+python -c "from siama_gaps import clicom; clicom.descargar_estado('datos_guanajuato/originales', [str(c) for c in range(11001, 11201)])"
+python -m siama_gaps clicom datos_guanajuato/originales/dia*.txt --destino datos_guanajuato --desde 1981 --min-dias 1826
+python -m siama_gaps run --datos datos_guanajuato --salida salidas_guanajuato
+$env:SIAMA_SALIDAS = "salidas_guanajuato"; uvicorn api.main:app --reload
+python -m siama_gaps actualizar          # después: trae lo más reciente del SMN (por defecto, este paquete)
+```
+
+El tablero `/agro` muestra un **mapa con 4 capas**, una a la vez: «¿Dónde llovió?» (lluvia contra lo normal),
+«¿Dónde hizo calor?» (temperatura de la tarde contra lo normal), «¿Dónde heló?» (días con helada) y «¿Dónde faltó
+agua?» (lluvia menos el agua que pierde el cultivo). Siguen los filtros de temporada y mes. Los puntos son las
+estaciones (lo medido); el color entre ellas es **estimado** por distancia inversa (`siama_gaps/mapa.py`) y no se
+pinta a más de 25 km de una estación. La interpolación no usa el relieve. API: `GET /api/v1/agro/mapa?ciclo=&inicio=&mes=`.
 
 ## Tecnologías de IBM (opcionales)
 

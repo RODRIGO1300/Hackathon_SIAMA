@@ -74,10 +74,11 @@ def leer_archivo(ruta):
     return meta, datos, {"filas": len(datos), "lineas_no_datos": ignoradas}
 
 
-def preparar(archivos, destino, desde=None, hasta=None):
+def preparar(archivos, destino, desde=None, hasta=None, min_dias=0):
+    """min_dias: estaciones con menos días con algún dato en el periodo se excluyen (quedan en el informe)."""
     destino = Path(destino)
     destino.mkdir(parents=True, exist_ok=True)
-    estaciones, series, informe = [], [], []
+    estaciones, series, informe, usados = [], [], [], []
     for ruta in archivos:
         meta, datos, conteo = leer_archivo(ruta)
         f = pd.to_datetime(datos["fecha"], errors="coerce")
@@ -96,6 +97,15 @@ def preparar(archivos, destino, desde=None, hasta=None):
                         "periodo_usado": f"{fd.min().date()} a {fd.max().date()}" if len(fd) else "",
                         "filas_usadas": len(datos), "dias_ausentes_del_archivo": dias_calendario - fd.nunique(),
                         **{f"nulo_{c}": n for c, n in nulos.items()}})
+        con_dato = datos[["precipitacion", "tmax", "tmin"]].apply(
+            lambda c: pd.to_numeric(c, errors="coerce").notna()).any(axis=1).sum()
+        informe[-1]["dias_con_dato"] = int(con_dato)
+        if con_dato < min_dias or not meta.get("latitud") or not meta.get("longitud"):
+            informe[-1]["excluida"] = (f"solo {con_dato} días con datos (mínimo {min_dias})" if con_dato < min_dias
+                                       else "sin coordenadas")
+            continue
+        informe[-1]["excluida"] = ""
+        usados.append(ruta)
         situacion = meta.get("situacion", "").strip().lower()
         estaciones.append({
             "clave": meta["clave"], "nombre": f"{_titulo(meta.get('nombre', meta['clave']))} ({meta['clave']})",
@@ -108,10 +118,10 @@ def preparar(archivos, destino, desde=None, hasta=None):
     ser = pd.concat(series, ignore_index=True)
     est.to_csv(destino / "estaciones.csv", index=False)
     ser.to_csv(destino / "series_diarias.csv", index=False)
-    emisiones = sorted({leer_archivo(r)[0].get("emision", "") for r in archivos} - {""})
+    emisiones = sorted({leer_archivo(r)[0].get("emision", "") for r in usados} - {""})
     fechas = pd.to_datetime(ser["fecha"])
     fuente = {"tipo": "oficial", "origen": "SMN · Base de Datos Climatológica Nacional (CLICOM)",
-              "emision": ", ".join(emisiones), "archivos": [Path(r).name for r in archivos],
+              "emision": ", ".join(emisiones), "archivos": [Path(r).name for r in usados], "min_dias": min_dias,
               "claves": [e["clave"] for e in estaciones], "estado_smn": ESTADO_SMN, "desde": desde, "hasta": hasta,
               "periodo": f"{fechas.min().year}–{fechas.max().year}", "datos_hasta": str(fechas.max().date())}
     (destino / "fuente.json").write_text(json.dumps(fuente, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -122,14 +132,15 @@ def preparar(archivos, destino, desde=None, hasta=None):
 
 def _diccionario(fuente, inf):
     filas = "\n".join(f"| {r.clave} | {r.nombre} | {r.periodo_usado} | {r.filas_usadas:,} | {r.dias_ausentes_del_archivo:,} | "
-                      f"{r.nulo_precipitacion} / {r.nulo_tmax} / {r.nulo_tmin} |" for r in inf.itertuples())
+                      f"{r.nulo_precipitacion} / {r.nulo_tmax} / {r.nulo_tmin} | {r.excluida or 'sí'} |"
+                      for r in inf.itertuples())
     return f"""# Diccionario de datos (paquete OFICIAL convertido de CLICOM)
 
 Origen: {fuente['origen']}. Emisión: {fuente['emision']}. Archivos: {', '.join(fuente['archivos'])}.
 Generado con `python -m siama_gaps clicom`. Los valores se copian sin modificar; la limpieza (etapa 0) los procesa.
 
-| Clave | Estación | Periodo usado | Filas | Días que no aparecen | NULO (lluvia / Tmax / Tmin) |
-|---|---|---|---|---|---|
+| Clave | Estación | Periodo usado | Filas | Días que no aparecen | NULO (lluvia / Tmax / Tmin) | ¿Incluida? |
+|---|---|---|---|---|---|---|
 {filas}
 
 ## estaciones.csv
@@ -196,9 +207,44 @@ def actualizar(destino, salida, forzar=False):
         ruta_m.write_text(json.dumps(metr, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
         return {"cambios": [], "datos_hasta": fuente.get("datos_hasta"), "revisado": ahora}
     archivos = [originales / f"dia{c}.txt" for c in claves]
-    _, _, fuente_nueva = preparar(archivos, destino, fuente.get("desde"), fuente.get("hasta"))
+    _, _, fuente_nueva = preparar(archivos, destino, fuente.get("desde"), fuente.get("hasta"), fuente.get("min_dias", 0))
     fuente_nueva["revisado"] = ahora
     (destino / "fuente.json").write_text(json.dumps(fuente_nueva, ensure_ascii=False, indent=2), encoding="utf-8")
     from . import pipeline
     pipeline.ejecutar(destino, salida)
     return {"cambios": cambios or ["(forzado)"], "datos_hasta": fuente_nueva["datos_hasta"], "revisado": ahora}
+
+
+# --- descarga de todas las estaciones de un estado ---------------------------------------------------------
+def existe_en_smn(clave, estado=ESTADO_SMN, timeout=30):
+    """True si el SMN publica dia<clave>.txt (consulta solo encabezados, sin descargar el archivo)."""
+    import urllib.error
+    import urllib.request
+
+    url = URL_SMN.format(estado=estado, clave=clave)
+    req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "siama-prototipo/0.1"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return r.status == 200 and "text/plain" in r.headers.get("Content-Type", "")
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError):
+        return False
+
+
+def descargar_estado(destino, claves, estado=ESTADO_SMN, pausa=0.3, avisar=print):
+    """Descarga los dia<clave>.txt que existan entre `claves`. Devuelve la lista de rutas guardadas."""
+    import time
+
+    destino = Path(destino)
+    guardados = []
+    for clave in claves:
+        ruta = destino / f"dia{clave}.txt"
+        if not ruta.exists():
+            if not existe_en_smn(clave, estado):
+                time.sleep(pausa)
+                continue
+            temporal, ruta = descargar(clave, destino, estado)
+            temporal.replace(ruta)
+            time.sleep(pausa)
+        guardados.append(ruta)
+        avisar(f"  {clave}: {ruta.stat().st_size // 1024} KB")
+    return guardados

@@ -22,9 +22,10 @@ def main():
     cl.add_argument("--destino", required=True, help="Carpeta del nuevo paquete de datos")
     cl.add_argument("--desde", type=int, default=None, help="Primer año a usar (p. ej. 1981)")
     cl.add_argument("--hasta", type=int, default=None, help="Último año a usar")
+    cl.add_argument("--min-dias", type=int, default=0, help="Excluir estaciones con menos días con datos en el periodo")
     ac = sub.add_parser("actualizar", help="Descarga lo más reciente del SMN y, si hay cambios, reprocesa todo")
-    ac.add_argument("--datos", default="datos_salamanca", help="Paquete creado con el comando clicom")
-    ac.add_argument("--salida", default="salidas_salamanca")
+    ac.add_argument("--datos", default="datos_guanajuato", help="Paquete creado con el comando clicom")
+    ac.add_argument("--salida", default="salidas_guanajuato")
     ac.add_argument("--forzar", action="store_true", help="Reprocesa aunque no haya datos nuevos")
     li = sub.add_parser("limpiar", help="Solo la limpieza de datos (etapa 0) y su reporte")
     li.add_argument("--datos", default="datos")
@@ -39,8 +40,9 @@ def main():
         pipeline.ejecutar(a.datos, a.salida)
     elif a.cmd == "clicom":
         from . import clicom
-        est, inf, fuente = clicom.preparar(a.archivos, a.destino, a.desde, a.hasta)
-        print(inf.to_string(index=False))
+        est, inf, fuente = clicom.preparar(a.archivos, a.destino, a.desde, a.hasta, a.min_dias)
+        excl = inf[inf["excluida"] != ""]
+        print(f"{len(est)} estaciones incluidas; {len(excl)} excluidas (ver {a.destino}/diccionario_datos.md).")
         print(f"Paquete listo en {a.destino}/ ({fuente['periodo']}). Siguiente paso:")
         print(f"  python -m siama_gaps run --datos {a.destino} --salida salidas_<nombre>")
     elif a.cmd == "actualizar":
