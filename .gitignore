@@ -3,3 +3,5 @@ __pycache__/
 /.claude/
 *.pyc
 salidas/
+.env
+*.crt

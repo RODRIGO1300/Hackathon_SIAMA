@@ -13,6 +13,7 @@
  *   vista     completo | mapa | serie
  *   desde, hasta  AAAA-MM-DD (opcional; por defecto el último año con datos)
  *   selector  "no" para ocultar la barra de controles (cuando el tablero ya tiene los suyos)
+ *   tema      "carbon" para usar el IBM Carbon Design System (colores, IBM Plex, controles); por defecto neutro
  *
  * Evento: "siama-estacion" (detail: {clave}) al elegir una estación en el mapa.
  * Tema: se adapta con variables CSS --shg-observado, --shg-estimado, --shg-fuente, etc.
@@ -50,6 +51,7 @@ siama-huecos{display:block;--shg-observado:#1f4e79;--shg-estimado:#c2570c;--shg-
  --shg-noest:rgba(120,120,120,.18);--shg-fuente:inherit;--shg-borde:#d9dee5;--shg-fondo:#fff;--shg-texto:#1d2733;--shg-suave:#5b6776}
 .shg{font-family:var(--shg-fuente);color:var(--shg-texto);background:var(--shg-fondo);border:1px solid var(--shg-borde);border-radius:10px;overflow:hidden}
 .shg-barra{display:flex;flex-wrap:wrap;gap:12px;align-items:end;padding:10px 14px;border-bottom:1px solid var(--shg-borde)}
+.shg-barra[hidden]{display:none}
 .shg-barra label{display:flex;flex-direction:column;font-size:12px;color:var(--shg-suave);gap:3px}
 .shg-barra select,.shg-barra input{font:inherit;font-size:14px;padding:4px 6px;border:1px solid var(--shg-borde);border-radius:6px;background:#fff;color:var(--shg-texto)}
 .shg-cuerpo{display:grid;grid-template-columns:minmax(260px,1fr) 2fr}
@@ -67,10 +69,25 @@ siama-huecos{display:block;--shg-observado:#1f4e79;--shg-estimado:#c2570c;--shg-
 .shg-ayuda b{color:var(--shg-texto)}
 .shg-leyenda-mapa{position:absolute;z-index:500;bottom:10px;left:10px;background:#fff;border:1px solid var(--shg-borde);border-radius:6px;padding:6px 8px;font-size:11px;line-height:1.6}
 .shg-leyenda-mapa i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
-.shg-error{padding:12px;color:#a61b1b;font-size:13px}`;
+.shg-error{padding:12px;color:#a61b1b;font-size:13px}
+siama-huecos[tema=carbon]{--shg-observado:#0f62fe;--shg-estimado:#ba4e00;--shg-banda:rgba(186,78,0,.16);
+ --shg-noest:rgba(141,141,141,.22);--shg-fuente:"IBM Plex Sans",system-ui,sans-serif;--shg-borde:#e0e0e0;--shg-fondo:#fff;
+ --shg-texto:#161616;--shg-suave:#525252}
+siama-huecos[tema=carbon] .shg,siama-huecos[tema=carbon] .shg-leyenda-mapa{border-radius:0}
+siama-huecos[tema=carbon] .shg-barra{gap:16px;padding:16px}
+siama-huecos[tema=carbon] .shg-barra label{font-size:12px;letter-spacing:.32px;gap:8px}
+siama-huecos[tema=carbon] .shg-barra select,siama-huecos[tema=carbon] .shg-barra input{height:40px;padding:0 16px;border:0;
+ border-bottom:1px solid #8d8d8d;border-radius:0;background:#f4f4f4;font-size:14px;letter-spacing:.16px}
+siama-huecos[tema=carbon] .shg-barra select:focus,siama-huecos[tema=carbon] .shg-barra input:focus{outline:2px solid #0f62fe;outline-offset:-2px}
+siama-huecos[tema=carbon] .shg-panel{padding:16px}
+siama-huecos[tema=carbon] .shg-titulo{font-size:16px;line-height:1.375}
+siama-huecos[tema=carbon] .shg-chip{border:0;background:#e0e0e0;color:#161616;padding:4px 10px;letter-spacing:.32px}
+siama-huecos[tema=carbon] .shg-error{color:#da1e28}`;
     document.head.appendChild(st);
   }
-  const colorVacios = (p) => p < 5 ? "#2e7d32" : p < 15 ? "#f9a825" : p < 30 ? "#ef6c00" : "#c62828";
+  // Colores del mapa por % de vacíos: neutro y colores de estado del Carbon Design System
+  const PALETA = { defecto: ["#2e7d32", "#f9a825", "#ef6c00", "#c62828"], carbon: ["#24a148", "#f1c21b", "#ff832b", "#da1e28"] };
+  const colorVacios = (p, t) => { const c = PALETA[t] || PALETA.defecto; return p < 5 ? c[0] : p < 15 ? c[1] : p < 30 ? c[2] : c[3]; };
   const fmt = (v, u) => v == null ? "—" : `${Number(v).toFixed(1)} ${u}`;
 
   class SiamaHuecos extends HTMLElement {
@@ -78,11 +95,13 @@ siama-huecos{display:block;--shg-observado:#1f4e79;--shg-estimado:#c2570c;--shg-
     get api() { return (this.getAttribute("api") || "").replace(/\/$/, ""); }
     get variable() { return this.getAttribute("variable") || "precipitacion"; }
     get vista() { return this.getAttribute("vista") || "completo"; }
+    get tema() { return this.getAttribute("tema") === "carbon" ? "carbon" : "defecto"; }
 
     async connectedCallback() {
       if (this._iniciado) return; this._iniciado = true;
       estilos(); css(CDN.leafletCss);
       const conMapa = this.vista !== "serie";
+      const pc = PALETA[this.tema];
       this.innerHTML = `
 <div class="shg" data-vista="${this.vista}">
   <div class="shg-barra" ${this.getAttribute("selector") === "no" ? "hidden" : ""}>
@@ -95,8 +114,8 @@ siama-huecos{display:block;--shg-observado:#1f4e79;--shg-estimado:#c2570c;--shg-
   </div>
   <div class="shg-cuerpo">
     ${conMapa ? `<div class="shg-mapa" data-r="mapa"><div class="shg-leyenda-mapa"><b>% de días sin dato</b><br>
-      <i style="background:#2e7d32"></i>menos de 5%<br><i style="background:#f9a825"></i>5–15%<br>
-      <i style="background:#ef6c00"></i>15–30%<br><i style="background:#c62828"></i>más de 30%</div></div>` : ""}
+      <i style="background:${pc[0]}"></i>menos de 5%<br><i style="background:${pc[1]}"></i>5–15%<br>
+      <i style="background:${pc[2]}"></i>15–30%<br><i style="background:${pc[3]}"></i>más de 30%</div></div>` : ""}
     ${this.vista !== "mapa" ? `<div class="shg-panel">
       <div class="shg-titulo" data-r="titulo">Cargando…</div><div class="shg-sub" data-r="sub"></div>
       <div class="shg-chips" data-r="chips"></div>
@@ -154,7 +173,7 @@ siama-huecos{display:block;--shg-observado:#1f4e79;--shg-estimado:#c2570c;--shg-
           const p = f.properties[`pct_faltante_${v}`];
           return L.circleMarker(ll, {
             radius: f.properties.clave === sel ? 10 : 7, weight: f.properties.clave === sel ? 3 : 1,
-            color: f.properties.clave === sel ? "#111" : "#fff", fillColor: colorVacios(p), fillOpacity: .9,
+            color: f.properties.clave === sel ? "#111" : "#fff", fillColor: colorVacios(p, this.tema), fillOpacity: .9,
           }).bindTooltip(`<b>${f.properties.nombre}</b><br>${NOMBRES[v]}: ${p.toFixed(1)}% de días sin dato<br>
             ${f.properties.altitud} m · ${f.properties.estado_operativo}`);
         },
@@ -239,7 +258,7 @@ siama-huecos{display:block;--shg-observado:#1f4e79;--shg-estimado:#c2570c;--shg-
       if (shapes.length) trazas.push({ x: [null], y: [null], type: "bar", name: "Sin estimar", marker: { color: "rgba(120,120,120,.35)" } });
       Plotly.react(this.$("grafica"), trazas, {
         margin: { l: 48, r: 10, t: 10, b: 36 }, barmode: "overlay", bargap: 0.1,
-        yaxis: { title: { text: u }, rangemode: v === "precipitacion" ? "tozero" : "normal", gridcolor: "#eef1f4" },
+        yaxis: { title: { text: u }, rangemode: v === "precipitacion" ? "tozero" : "normal", gridcolor: this.tema === "carbon" ? "#e0e0e0" : "#eef1f4" },
         xaxis: { type: "date" }, shapes, hovermode: "closest",
         legend: { orientation: "h", y: 1.12, x: 0 }, paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
         font: { family: getComputedStyle(this).fontFamily, size: 12 },

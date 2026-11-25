@@ -4,90 +4,193 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Demo de integración · Datos sin huecos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
-  :root { --fondo:#f4f6f9; --tarjeta:#fff; --texto:#1d2733; --suave:#5b6776; --borde:#d9dee5; --acento:#0b5d8c; }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--fondo); color:var(--texto); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  header { background:#0b3d5c; color:#fff; padding:14px 20px; display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
-  header h1 { font-size:17px; margin:0; font-weight:600; }
-  header small { opacity:.8; }
-  nav { display:flex; gap:4px; }
-  nav button { font:inherit; font-size:14px; padding:7px 12px; border:0; border-radius:6px; background:transparent; color:#cfe3f1; cursor:pointer; }
-  nav button[aria-selected=true] { background:#fff; color:#0b3d5c; font-weight:600; }
-  main { max-width:1280px; margin:0 auto; padding:18px 16px 40px; display:grid; gap:16px; }
-  .tarjeta { background:var(--tarjeta); border:1px solid var(--borde); border-radius:10px; padding:14px 16px; }
-  .tarjeta h2 { font-size:15px; margin:0 0 8px; }
-  .aviso { font-size:13px; color:var(--suave); }
-  .fila { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
-  @media (max-width:860px){ .fila { grid-template-columns:1fr; } }
-  table { border-collapse:collapse; width:100%; font-size:13px; }
-  th, td { text-align:right; padding:5px 8px; border-bottom:1px solid var(--borde); font-variant-numeric: tabular-nums; }
-  th:first-child, td:first-child { text-align:left; }
-  tr.rec td { font-weight:600; background:#fff5ec; }
-  pre { background:#0f1720; color:#d6e2ee; padding:12px; border-radius:8px; overflow:auto; font-size:12.5px; }
-  a { color:var(--acento); }
-  #resumen { font-size:14px; line-height:1.5; }
+  /* Tokens del IBM Carbon Design System (tema g10) */
+  :root {
+    --cds-background:#f4f4f4; --cds-layer:#ffffff; --cds-layer-accent:#e0e0e0; --cds-field:#f4f4f4;
+    --cds-text-primary:#161616; --cds-text-secondary:#525252; --cds-text-on-color:#ffffff;
+    --cds-border-subtle:#e0e0e0; --cds-border-strong:#8d8d8d; --cds-interactive:#0f62fe;
+    --cds-button-primary:#0f62fe; --cds-button-primary-hover:#0050e6; --cds-focus:#0f62fe;
+    --cds-highlight:#edf5ff; --cds-support-error:#da1e28;
+    --cds-tag-purple-bg:#e8daff; --cds-tag-purple-text:#6929c4; --cds-tag-gray-bg:#e0e0e0; --cds-tag-gray-text:#393939;
+    --cds-shell:#161616; --cds-shell-text:#f4f4f4; --cds-shell-text-secondary:#c6c6c6; --cds-shell-border:#393939;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--cds-background); color:var(--cds-text-primary);
+    font-family:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; font-size:14px; line-height:1.43; letter-spacing:.16px; }
+  code, pre { font-family:"IBM Plex Mono", ui-monospace, monospace; }
+
+  /* UI Shell */
+  .cds-header { position:sticky; top:0; z-index:1100; height:48px; background:var(--cds-shell); color:var(--cds-shell-text);
+    display:flex; align-items:center; border-bottom:1px solid var(--cds-shell-border); }
+  .cds-header__name { padding:0 16px; font-size:14px; white-space:nowrap; }
+  .cds-header__name b { font-weight:600; }
+  .cds-header__desc { color:var(--cds-shell-text-secondary); font-size:12px; padding:0 16px; border-left:1px solid var(--cds-shell-border);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* Tabs (line) */
+  .cds-tabs { display:flex; gap:0; padding:0 16px; background:var(--cds-layer); border-bottom:1px solid var(--cds-border-subtle); overflow-x:auto; }
+  .cds-tabs button { font:inherit; height:48px; padding:0 16px; border:0; background:transparent; color:var(--cds-text-secondary);
+    border-bottom:2px solid var(--cds-border-subtle); cursor:pointer; white-space:nowrap; }
+  .cds-tabs button:hover { color:var(--cds-text-primary); border-bottom-color:var(--cds-border-strong); }
+  .cds-tabs button[aria-selected=true] { color:var(--cds-text-primary); font-weight:600; border-bottom-color:var(--cds-interactive); }
+  .cds-tabs button:focus-visible { outline:2px solid var(--cds-focus); outline-offset:-2px; }
+
+  main { max-width:1312px; margin:0 auto; padding:24px 16px 48px; display:grid; grid-template-columns:minmax(0,1fr); gap:16px; }
+  .cds-tile { background:var(--cds-layer); padding:16px; min-width:0; }
+  .cds-tile h2 { font-size:16px; font-weight:600; line-height:1.375; margin:0 0 4px; }
+  .helper { font-size:12px; letter-spacing:.32px; color:var(--cds-text-secondary); }
+  .cds-notification { background:var(--cds-layer); border-left:3px solid var(--cds-interactive); padding:12px 16px; font-size:14px; }
+  .fila { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:16px; }
+  @media (max-width:860px){ .fila { grid-template-columns:minmax(0,1fr); } .cds-header__desc { display:none; } }
+
+  .cds-tag { display:inline-flex; align-items:center; height:24px; padding:0 8px; border-radius:1rem; font-size:12px; letter-spacing:.32px;
+    background:var(--cds-tag-gray-bg); color:var(--cds-tag-gray-text); vertical-align:middle; }
+  .cds-tag--purple { background:var(--cds-tag-purple-bg); color:var(--cds-tag-purple-text); }
+  .encabezado { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+  .encabezado h2 { margin:0; }
+
+  #resumen { font-size:16px; line-height:1.5; letter-spacing:0; margin:0 0 16px; }
+  .cds-form { display:flex; gap:0; }
+  .cds-text-input { flex:1; min-width:0; height:40px; padding:0 16px; font:inherit; border:0; border-bottom:1px solid var(--cds-border-strong);
+    background:var(--cds-field); color:var(--cds-text-primary); }
+  .cds-text-input:focus { outline:2px solid var(--cds-focus); outline-offset:-2px; }
+  .cds-btn { height:40px; padding:0 16px; font:inherit; border:0; background:var(--cds-button-primary); color:var(--cds-text-on-color); cursor:pointer; }
+  .cds-btn:hover { background:var(--cds-button-primary-hover); }
+  .cds-btn:focus-visible { outline:2px solid var(--cds-focus); outline-offset:-3px; box-shadow:inset 0 0 0 3px #fff; }
+  .cds-btn:disabled, .cds-text-input:disabled { background:#c6c6c6; color:#8d8d8d; cursor:not-allowed; border-bottom-color:transparent; }
+  #respuesta { margin-top:12px; font-size:14px; line-height:1.5; }
+  #respuesta.error { color:var(--cds-support-error); }
+
+  .tabla { overflow-x:auto; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th { background:var(--cds-layer-accent); font-weight:600; height:40px; }
+  th, td { text-align:right; padding:0 16px; height:40px; border-bottom:1px solid var(--cds-border-subtle); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; white-space:normal; padding-top:8px; padding-bottom:8px; }
+  th:not(:first-child), td:not(:first-child) { padding:0 12px; }
+  tr.rec td { background:var(--cds-highlight); font-weight:600; }
+  tr.rec td:first-child { box-shadow:inset 3px 0 0 var(--cds-interactive); }
+
+  pre { background:var(--cds-field); color:var(--cds-text-primary); padding:16px; overflow:auto; font-size:12px; line-height:1.5; margin:12px 0; }
+  a { color:var(--cds-interactive); }
 </style>
 </head>
 <body>
-<header>
-  <div><h1>Tablero de ejemplo</h1><small>Simulación de un tablero existente que incrusta el componente &lt;siama-huecos&gt;</small></div>
-  <nav role="tablist">
-    <button role="tab" aria-selected="true" data-var="precipitacion">Monitor Precipitaciones</button>
-    <button role="tab" aria-selected="false" data-var="tmax">Monitor Temperaturas</button>
-  </nav>
+<header class="cds-header">
+  <div class="cds-header__name">SIAMA <b>Datos sin huecos</b></div>
+  <div class="cds-header__desc">Tablero de ejemplo que incrusta el componente &lt;siama-huecos&gt; · IBM Carbon Design System</div>
 </header>
+<nav class="cds-tabs" role="tablist" aria-label="Tablero">
+  <button role="tab" aria-selected="true" data-var="precipitacion">Monitor Precipitaciones</button>
+  <button role="tab" aria-selected="false" data-var="tmax">Monitor Temperaturas</button>
+</nav>
 <main>
-  <p class="aviso">Datos <b>sintéticos</b> de prueba. Todo lo que está debajo de esta línea es el componente incrustado con una sola etiqueta HTML;
-    el resto de la página representa al tablero anfitrión, que no se modifica.</p>
+  <div class="cds-notification">Datos <b>sintéticos</b> de prueba. El bloque con mapa y gráfica es el componente incrustado con una sola
+    etiqueta HTML; el resto de la página representa al tablero anfitrión, que no se modifica.</div>
 
-  <siama-huecos id="comp" variable="precipitacion" vista="completo"></siama-huecos>
+  <siama-huecos id="comp" variable="precipitacion" vista="completo" tema="carbon"></siama-huecos>
 
   <div class="fila">
-    <section class="tarjeta">
-      <h2>¿Qué tan completa está esta estación? <span class="aviso">(endpoint para el asistente de IA)</span></h2>
-      <div id="resumen" class="aviso">Elige una estación en el mapa.</div>
+    <section class="cds-tile" aria-labelledby="t-asistente">
+      <div class="encabezado">
+        <h2 id="t-asistente">Asistente de IA</h2>
+        <span class="cds-tag" id="fuente">Plantilla</span>
+      </div>
+      <p id="resumen" class="helper">Elige una estación en el mapa.</p>
+      <form class="cds-form" id="form-pregunta">
+        <label for="pregunta" class="helper" style="position:absolute;left:-9999px">Pregunta sobre la estación</label>
+        <input class="cds-text-input" id="pregunta" maxlength="300" placeholder="Ej. ¿Puedo confiar en la lluvia de 2023?" autocomplete="off">
+        <button class="cds-btn" type="submit">Preguntar</button>
+      </form>
+      <div id="respuesta" class="helper" aria-live="polite"></div>
     </section>
-    <section class="tarjeta">
-      <h2>¿El modelo le gana a la línea base? <span class="aviso">(prueba con huecos artificiales)</span></h2>
-      <div id="metricas" class="aviso">Cargando…</div>
+    <section class="cds-tile" aria-labelledby="t-metricas">
+      <div class="encabezado"><h2 id="t-metricas">¿El modelo le gana a la línea base?</h2></div>
+      <p class="helper" style="margin:-8px 0 12px">Prueba con huecos artificiales sobre datos medidos</p>
+      <div id="metricas" class="tabla helper">Cargando…</div>
     </section>
   </div>
 
-  <section class="tarjeta">
+  <section class="cds-tile">
     <h2>Cómo incrustarlo en Monitor Precipitaciones / Monitor Temperaturas</h2>
     <pre>&lt;script src="https://SERVIDOR/web/siama-huecos.js"&gt;&lt;/script&gt;
 &lt;siama-huecos api="https://SERVIDOR" variable="precipitacion" vista="completo"&gt;&lt;/siama-huecos&gt;
 
+&lt;!-- Con el estilo IBM Carbon: --&gt;
+&lt;siama-huecos api="https://SERVIDOR" variable="tmax" tema="carbon"&gt;&lt;/siama-huecos&gt;
+
 &lt;!-- Solo la gráfica, controlada por los filtros del tablero: --&gt;
 &lt;siama-huecos api="https://SERVIDOR" vista="serie" selector="no" estacion="11003" variable="tmax"&gt;&lt;/siama-huecos&gt;</pre>
-    <p class="aviso">API documentada (OpenAPI): <a href="/docs" target="_blank">/docs</a> ·
-      Endpoints: <code>/api/v1/estaciones/{clave}/diagnostico</code>, <code>/api/v1/estaciones/{clave}/serie</code>, <code>/api/v1/metricas</code></p>
+    <p class="helper">API documentada (OpenAPI): <a href="/docs" target="_blank">/docs</a> ·
+      Endpoints: <code>/api/v1/estaciones/{clave}/diagnostico</code>, <code>/api/v1/estaciones/{clave}/serie</code>,
+      <code>/api/v1/metricas</code> · Asistente: <code>/api/v1/estaciones/{clave}/resumen</code>, <code>/api/v1/estaciones/{clave}/preguntar</code></p>
   </section>
 </main>
 <script src="siama-huecos.js"></script>
 <script>
   const comp = document.getElementById("comp");
-  document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => {
-    document.querySelectorAll("nav button").forEach((x) => x.setAttribute("aria-selected", x === b));
+  const $ = (id) => document.getElementById(id);
+  document.querySelectorAll(".cds-tabs button").forEach((b) => b.addEventListener("click", () => {
+    document.querySelectorAll(".cds-tabs button").forEach((x) => x.setAttribute("aria-selected", x === b));
     comp.setAttribute("variable", b.dataset.var);
     metricas(b.dataset.var);
   }));
-  async function resumen(clave) {
-    const r = await (await fetch(`/api/v1/estaciones/${clave}/resumen`)).json();
-    document.getElementById("resumen").textContent = r.texto;
+
+  // --- Asistente de IA (watsonx.ai / IBM Granite cuando está configurado) ---
+  let iaActiva = false, ultima = null;
+  fetch("/api/v1/salud").then((r) => r.json()).then((s) => {
+    iaActiva = !!(s.watsonx && s.watsonx.configurado);
+    if (!iaActiva) {
+      $("pregunta").disabled = true; document.querySelector(".cds-btn").disabled = true;
+      $("pregunta").placeholder = "Configura watsonx.ai para hacer preguntas (ver ibm/README.md)";
+    }
+  }).catch(() => {});
+  function etiqueta(fuente) {
+    const ia = fuente && fuente.startsWith("watsonx");
+    $("fuente").className = "cds-tag" + (ia ? " cds-tag--purple" : "");
+    $("fuente").textContent = ia ? "IBM Granite · " + fuente.split("·").pop().trim().replace(/^ibm\//, "") : "Plantilla";
   }
+  async function resumen(clave) {
+    if (!clave || clave === ultima) return;
+    ultima = clave;
+    $("resumen").className = "helper"; $("resumen").textContent = iaActiva ? "Redactando con IBM Granite…" : "Cargando…";
+    $("respuesta").textContent = "";
+    const r = await (await fetch(`/api/v1/estaciones/${clave}/resumen`)).json();
+    if (clave !== ultima) return;
+    $("resumen").className = ""; $("resumen").textContent = r.texto;
+    etiqueta(r.fuente);
+  }
+  $("form-pregunta").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const q = $("pregunta").value.trim(), clave = comp.getAttribute("estacion");
+    if (q.length < 3 || !clave) return;
+    $("respuesta").className = "helper"; $("respuesta").textContent = "Pensando…";
+    try {
+      const r = await fetch(`/api/v1/estaciones/${clave}/preguntar?` + new URLSearchParams({ q }));
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.detail || r.statusText);
+      $("respuesta").className = ""; $("respuesta").textContent = j.respuesta;
+    } catch (err) {
+      $("respuesta").className = "error"; $("respuesta").textContent = "No se pudo responder: " + err.message;
+    }
+  });
   comp.addEventListener("siama-estacion", (e) => resumen(e.detail.clave));
   new MutationObserver(() => resumen(comp.getAttribute("estacion"))).observe(comp, { attributeFilter: ["estacion"] });
+
+  // --- Métricas ---
   const NOM = { interp_lineal: "Interpolación lineal", idw: "IDW (línea base)", normal: "Razón / diferencia normal",
-    ml: "Machine learning", ensamble: "Ensamble", recomendado: "Recomendado (selección por tipo de hueco)" };
+    ml: "Machine learning", ensamble: "Ensamble", recomendado: "Recomendado (por tipo de hueco)" };
   async function metricas(v) {
     const m = await (await fetch(`/api/v1/metricas?variable=${v}&clase=todas`)).json();
     const u = v === "precipitacion" ? "mm" : "°C";
     const filas = m.resultados.map((r) => `<tr class="${r.metodo === "recomendado" ? "rec" : ""}"><td>${NOM[r.metodo] || r.metodo}</td>
       <td>${r.mae?.toFixed(2)}</td><td>${r.rmse?.toFixed(2)}</td><td>${r.kge?.toFixed(3)}</td>
       <td>${r.cobertura != null ? (100 * r.cobertura).toFixed(1) + "%" : "—"}</td></tr>`).join("");
-    document.getElementById("metricas").innerHTML = `<table><thead><tr><th>Método</th><th>MAE (${u})</th><th>RMSE</th><th>KGE</th><th>Cobertura 90%</th></tr></thead>
+    $("metricas").className = "tabla";
+    $("metricas").innerHTML = `<table><thead><tr><th>Método</th><th>MAE (${u})</th><th>RMSE</th><th>KGE</th><th>Cobertura 90%</th></tr></thead>
       <tbody>${filas}</tbody></table>`;
   }
   metricas("precipitacion");

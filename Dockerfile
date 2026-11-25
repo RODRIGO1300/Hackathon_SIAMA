@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.txt requirements-ibm.txt ./
+RUN pip install --no-cache-dir -r requirements-ibm.txt
 COPY siama_gaps ./siama_gaps
 COPY api ./api
 COPY web ./web
@@ -10,5 +10,7 @@ COPY datos ./datos
 # Para datos oficiales: reemplazar ./datos y reconstruir, o montar volúmenes y ejecutar
 #   docker run ... python -m siama_gaps run --datos /datos --salida /app/salidas
 RUN python -m siama_gaps run --datos datos --salida salidas
+# IBM Cloud Code Engine indica el puerto con la variable PORT; en local se usa 8000.
+ENV PORT=8000
 EXPOSE 8000
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "exec uvicorn api.main:app --host 0.0.0.0 --port ${PORT}"]

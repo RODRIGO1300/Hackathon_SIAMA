@@ -2,7 +2,14 @@
 
 Ejecutar:  uvicorn api.main:app --reload
 Documentación interactiva (OpenAPI): http://localhost:8000/docs
+
+Integraciones opcionales con IBM (ver ibm/README.md):
+  - watsonx.ai (IBM Granite) redacta el resumen y responde preguntas del asistente de IA.
+  - IBM Cloud Databases for PostgreSQL: si SIAMA_DATABASE_URL está definida, los datos se leen de PostgreSQL.
+Sin esas variables, la API funciona igual leyendo los archivos de salidas/.
 """
+import gzip
+import io
 import json
 import os
 from datetime import date
@@ -17,6 +24,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
+from siama_gaps.entorno import cargar_env
+
+from . import watsonx
+
+cargar_env()
 RAIZ = Path(__file__).resolve().parent.parent
 SALIDAS = Path(os.environ.get("SIAMA_SALIDAS", RAIZ / "salidas"))
 Variable = Literal["precipitacion", "tmax", "tmin"]
@@ -32,24 +44,40 @@ app = FastAPI(
     ),
 )
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET"], allow_headers=["*"])
+FUENTE = "postgresql" if os.environ.get("SIAMA_DATABASE_URL") else "archivos"
+
+
+def _abridor():
+    """Devuelve una función nombre -> BytesIO, leyendo de PostgreSQL o de los archivos de salidas/."""
+    if FUENTE == "postgresql":
+        from siama_gaps import postgres
+        crudo = postgres.leer_para_api()
+        return lambda nombre: io.BytesIO(crudo[nombre])
+    if not (SALIDAS / "series_completadas.csv.gz").exists():
+        raise RuntimeError("No hay salidas. Ejecute primero: python -m siama_gaps run")
+
+    def abrir(nombre):
+        if nombre == "series_completadas.csv":
+            return io.BytesIO(gzip.decompress((SALIDAS / "series_completadas.csv.gz").read_bytes()))
+        return io.BytesIO((SALIDAS / nombre).read_bytes())
+    return abrir
 
 
 @lru_cache
 def datos():
-    if not (SALIDAS / "series_completadas.csv.gz").exists():
-        raise RuntimeError("No hay salidas. Ejecute primero: python -m siama_gaps run")
-    serie = pd.read_csv(SALIDAS / "series_completadas.csv.gz", dtype={"clave": str},
+    abrir = _abridor()
+    serie = pd.read_csv(abrir("series_completadas.csv"), dtype={"clave": str},
                         keep_default_na=False, na_values=[""], low_memory=False)
     for c in ("metodo", "motivo_no_estimable", "qc"):
         serie[c] = serie[c].fillna("")
     serie = serie.set_index(["clave", "variable"]).sort_index()
-    est = pd.read_csv(SALIDAS / "estaciones.csv", dtype={"clave": str}).set_index("clave")
-    diag = pd.read_csv(SALIDAS / "diagnostico_estaciones.csv", dtype={"clave": str})
-    huecos = pd.read_csv(SALIDAS / "huecos.csv", dtype={"clave": str})
-    vec = pd.read_csv(SALIDAS / "vecinos.csv", dtype={"clave": str, "vecino": str})
-    homog = pd.read_csv(SALIDAS / "homogeneidad.csv", dtype={"clave": str})
-    qc = pd.read_csv(SALIDAS / "qc_banderas.csv", dtype={"clave": str})
-    metr = json.loads((SALIDAS / "metricas.json").read_text(encoding="utf-8"))
+    est = pd.read_csv(abrir("estaciones.csv"), dtype={"clave": str}).set_index("clave")
+    diag = pd.read_csv(abrir("diagnostico_estaciones.csv"), dtype={"clave": str})
+    huecos = pd.read_csv(abrir("huecos.csv"), dtype={"clave": str})
+    vec = pd.read_csv(abrir("vecinos.csv"), dtype={"clave": str, "vecino": str})
+    homog = pd.read_csv(abrir("homogeneidad.csv"), dtype={"clave": str})
+    qc = pd.read_csv(abrir("qc_banderas.csv"), dtype={"clave": str})
+    metr = json.loads(abrir("metricas.json").read().decode("utf-8"))
     return {"serie": serie, "est": est, "diag": diag, "huecos": huecos, "vec": vec,
             "homog": homog, "qc": qc, "metricas": metr}
 
@@ -145,9 +173,7 @@ def metricas(variable: Optional[Variable] = None,
             "generado": m["generado"]}
 
 
-@app.get("/api/v1/estaciones/{clave}/resumen", tags=["Asistente IA"],
-         summary="Resumen en lenguaje natural (para el asistente de IA de SIAMA)")
-def resumen(clave: str):
+def _resumen_plantilla(clave):
     d = datos()
     info = _estacion(clave)
     diag = d["diag"][d["diag"].clave == clave].set_index("variable")
@@ -165,13 +191,77 @@ def resumen(clave: str):
         partes.append("Atención: posible cambio abrupto en " + ", ".join(
             f"{NOMBRES[r.variable].lower()} desde {r.fecha_cambio}" for r in h.itertuples()) + ".")
     texto = f"Estación {info['nombre']} ({info['municipio']}, {info['altitud']:.0f} m). " + " ".join(partes)
-    return {"estacion": info, "texto": texto}
+    return info, texto
+
+
+def _contexto_ia(clave, texto):
+    """Contexto con datos verificables que se entrega a Granite (no puede citar nada fuera de esto)."""
+    d = datos()
+    lineas = [texto, "Estado de la estación: " + str(d["est"].loc[clave, "estado_operativo"]) + "."]
+    for v in ["precipitacion", "tmax", "tmin"]:
+        vec = d["vec"][(d["vec"].clave == clave) & (d["vec"].variable == v)]
+        if len(vec):
+            nombres = ", ".join(f"{d['est'].loc[r.vecino, 'nombre'] if r.vecino in d['est'].index else r.vecino} "
+                                f"a {r.dist_km:.0f} km con correlación {r.correlacion:.2f}" for r in vec.itertuples())
+            lineas.append(f"Estaciones vecinas usadas para {NOMBRES[v].lower()}: {nombres}.")
+        else:
+            lineas.append(f"Para {NOMBRES[v].lower()} no hay estaciones vecinas suficientemente correlacionadas.")
+    m = d["metricas"]
+    nivel = int(round(100 * m["nivel_intervalo"]))
+    for r in m["resultados_prueba"]:
+        if r["metodo"] == "recomendado" and r["clase"] == "todas":
+            u = UNIDADES[r["variable"]]
+            cob = (f", y el intervalo del {nivel}% contuvo el valor real en el {100 * r['cobertura']:.0f}% de los casos"
+                   if r.get("cobertura") is not None else "")
+            lineas.append(f"Validación del modelo para {NOMBRES[r['variable']].lower()} (todas las estaciones, "
+                          f"huecos artificiales): error medio absoluto de {r['mae']:.2f} {u}{cob}.")
+    lineas.append("Banderas: 'estimado alta' significa que hubo 3 o más vecinos con dato ese día o el hueco era corto; "
+                  "'estimado baja' es el resto de estimaciones; 'no estimable' significa que no se publicó valor.")
+    return "\n".join(lineas)
+
+
+_cache_ia = {}
+
+
+@app.get("/api/v1/estaciones/{clave}/resumen", tags=["Asistente IA"],
+         summary="Resumen en lenguaje natural (para el asistente de IA de SIAMA)",
+         description="Si watsonx.ai está configurado, el texto lo redacta un modelo IBM Granite a partir de los datos "
+                     "de la estación; si no, se usa una plantilla. El campo `fuente` indica cuál se usó.")
+def resumen(clave: str, ia: bool = Query(True, description="Usar watsonx.ai si está configurado")):
+    info, base = _resumen_plantilla(clave)
+    out = {"estacion": info, "texto": base, "texto_plantilla": base, "fuente": "plantilla"}
+    w = watsonx.cliente()
+    if ia and w.configurado:
+        llave = (clave, datos()["metricas"]["generado"], w.modelo)
+        try:
+            if llave not in _cache_ia:
+                _cache_ia[llave] = w.redactar_resumen(_contexto_ia(clave, base))
+            out.update(texto=_cache_ia[llave], fuente=f"watsonx.ai · {w.modelo}")
+        except watsonx.ErrorWatsonx as e:
+            out["aviso"] = f"Se usó la plantilla porque watsonx.ai no respondió: {e}"
+    return out
+
+
+@app.get("/api/v1/estaciones/{clave}/preguntar", tags=["Asistente IA"],
+         summary="Pregunta libre sobre una estación, respondida por IBM Granite (watsonx.ai)",
+         description="Requiere watsonx.ai configurado. La respuesta se limita a los datos de la estación.")
+def preguntar(clave: str, q: str = Query(..., min_length=3, max_length=300, description="Pregunta en español")):
+    w = watsonx.cliente()
+    if not w.configurado:
+        raise HTTPException(503, "El asistente requiere watsonx.ai: defina WATSONX_APIKEY y WATSONX_PROJECT_ID")
+    info, base = _resumen_plantilla(clave)
+    try:
+        texto = w.responder(_contexto_ia(clave, base), q)
+    except watsonx.ErrorWatsonx as e:
+        raise HTTPException(502, str(e))
+    return {"estacion": info, "pregunta": q, "respuesta": texto, "fuente": f"watsonx.ai · {w.modelo}"}
 
 
 @app.get("/api/v1/salud", tags=["Operación"])
 def salud():
     d = datos()
-    return {"ok": True, "estaciones": len(d["est"]), "generado": d["metricas"]["generado"]}
+    return {"ok": True, "estaciones": len(d["est"]), "generado": d["metricas"]["generado"],
+            "fuente_datos": FUENTE, "watsonx": watsonx.cliente().estado()}
 
 
 app.mount("/web", StaticFiles(directory=RAIZ / "web", html=True), name="web")

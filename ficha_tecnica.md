@@ -63,4 +63,13 @@ y el sistema la elige automáticamente. El ML debe ganarse su lugar, como lo pid
 ## 7. Integración
 API REST con FastAPI (puede migrarse a Django REST Framework) y documentación OpenAPI en `/docs`. Componente web
 `<siama-huecos>` (Leaflet + Plotly) que se incrusta en Monitor Precipitaciones y Monitor Temperaturas sin rediseñarlos.
-Docker. Siguiente paso: cargar `series_completadas` en PostgreSQL/PostGIS.
+Docker. Los resultados se cargan en PostgreSQL + PostGIS (`python -m siama_gaps postgres`) y la API puede leer de ahí.
+
+**Tecnologías de IBM (opcionales, no cambian el stack del reto):**
+- **watsonx.ai con IBM Granite** para el asistente de IA: redacta el resumen de cada estación y responde preguntas
+  usando solo los datos del pipeline. Nunca presenta un estimado como observado y declara su `fuente`.
+- **IBM Cloud Databases for PostgreSQL** como base gestionada con PostGIS (esquema `siama_huecos`).
+- **IBM Cloud Code Engine** para publicar la API y la demo desde el mismo `Dockerfile`, con escala a cero.
+- **IBM Carbon Design System** en la demo y como tema opcional del componente (`tema="carbon"`).
+
+Sin credenciales de IBM, todo funciona igual con archivos locales y el resumen de plantilla.

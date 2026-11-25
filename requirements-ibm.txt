@@ -1,0 +1,4 @@
+# Dependencias opcionales para las integraciones con IBM Cloud (ver ibm/README.md).
+# watsonx.ai no necesita paquetes extra: se usa su API REST con la biblioteca estándar.
+-r requirements.txt
+psycopg[binary]>=3.2      # IBM Cloud Databases for PostgreSQL (PostGIS)
