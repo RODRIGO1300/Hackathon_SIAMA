@@ -117,10 +117,6 @@
   #s1 .sub { color: #9ba8b9; }
   #s1 .tagline { margin-top: 32px; padding-top: 24px; border-top: 1px solid #2a3a52; font-size: 14px; color: #6ea6ff; letter-spacing: .05em; }
 
-  #s9 { background: #0f1724; color: #fff; justify-content: center; align-items: center; text-align: center; }
-  #s9 .sub { color: #9ba8b9; margin: 16px auto 0; }
-
-
   .slide { justify-content: center; overflow-y: auto; padding: clamp(20px, 6vw, 72px); padding-bottom: 86px; }
   .slide > * { flex-shrink: 0; }
   h1 { font-size: clamp(32px, 5.5vw, 76px); }
@@ -132,13 +128,13 @@
   .source { margin-top: 12px; color: var(--muted); font-size: 13px; }
   #s1 .tagline { color: #a9ccff; }
   @media (max-width: 650px) {
-    .slide, #s9 { justify-content: flex-start; }
+    .slide { justify-content: flex-start; }
     .cards { grid-template-columns: 1fr; gap: 8px; margin-top: 16px; }
     .card { padding: 12px 16px; }
     .nav { bottom: 12px; }
   }
   @media (max-height: 540px) {
-    .slide, #s9 { justify-content: flex-start; }
+    .slide { justify-content: flex-start; }
   }
 </style>
 </head>
@@ -176,21 +172,15 @@
     <a class="demo-link" href="http://localhost:8000/agro" target="_blank" rel="noopener">Abrir Clima para el campo ↗</a>
   </section>
 
-  <section class="slide" aria-labelledby="prueba">
-    <h2 id="prueba">Qué probamos en Salamanca</h2>
-    <p class="sub">Ocultamos mediciones históricas de las estaciones Salamanca y La Joyita y comparamos las estimaciones de lluvia con lo que se había medido.</p>
-    <div class="cards cards-2">
-      <div class="card card-blue"><p class="metric">1,5 mm</p><p>Error absoluto medio en los días de prueba que se pudieron estimar.</p></div>
-      <div class="card card-purple"><p class="metric">≈ 25 %</p><p>De los días de prueba de lluvia quedaron como no estimables.</p></div>
+  <section class="slide" aria-labelledby="faltantes">
+    <h2 id="faltantes">¿De dónde sale el dato estimado?</h2>
+    <p class="sub">Partimos de los registros históricos de CLICOM/SMN. Para cada hueco, el sistema busca estaciones cercanas que hayan seguido un patrón parecido en los días con mediciones coincidentes.</p>
+    <div class="cards cards-3">
+      <div class="card card-blue"><h3 class="card-title">1. Elegimos estaciones comparables</h3><p>Buscamos hasta 6 estaciones a menos de 120 km, con al menos 365 días coincidentes y correlación histórica suficiente. También consideramos distancia, altitud y época del año.</p></div>
+      <div class="card card-purple"><h3 class="card-title">2. Calculamos una aproximación</h3><p>Probamos métodos como ponderar mediciones vecinas por distancia, ajustar por la relación normal entre estaciones e interpolar huecos cortos. Un modelo de gradient boosting combina además vecinos, fechas y clima histórico. Se elige el método que mejor rindió en pruebas para ese tipo de variable y duración del hueco.</p></div>
+      <div class="card card-green"><h3 class="card-title">3. Medimos el margen de error</h3><p>La lluvia se estima en dos pasos: probabilidad de que llueva y cantidad probable. Cada resultado lleva un intervalo de incertidumbre del 90 % y una marca de calidad. Si faltan datos de apoyo o no se puede calcular ese intervalo, queda como “no estimable”.</p></div>
     </div>
-    <a class="demo-link" href="http://localhost:8000/web/demo.html" target="_blank" rel="noopener">Abrir el monitor del prototipo ↗</a>
-    <p class="source">Registros de CLICOM (Servicio Meteorológico Nacional). Prueba con huecos artificiales en dos estaciones.</p>
-  </section>
-
-  <section class="slide" id="s9" aria-labelledby="piloto">
-    <h2 id="piloto">Hagamos un piloto en Salamanca</h2>
-    <p class="sub">Con el equipo de SIAMA, productores y personal técnico agrícola, proponemos probar el módulo en los monitores de SIAMA y revisar si los indicadores responden a preguntas del campo.</p>
-    <p class="sub">Al consultar el historial, Don Miguel podrá preguntar qué registró la estación, qué se pudo estimar y dónde sigue faltando información.</p>
+    <p class="source">Los huecos artificiales en datos conocidos permiten comparar estimaciones contra mediciones reales. Por eso el valor rellenado es una aproximación, nunca una nueva medición.</p>
   </section>
 </main>
 
